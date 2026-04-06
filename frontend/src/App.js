@@ -13,6 +13,10 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminPendingDreams from "./pages/AdminPendingDreams";
 import AdminUsers from "./pages/AdminUsers";
 import AdminMecenasRequests from "./pages/AdminMecenasRequests";
+import JoyWall from "./pages/JoyWall";
+import CreateJoyPost from "./pages/CreateJoyPost";
+import AdminJoyPosts from "./pages/AdminJoyPosts";
+
 
 /* DREAM MARKETPLACE */
 import MecenasDreams from "./pages/MecenasDreams";
@@ -35,6 +39,11 @@ function App() {
 
         {/* ================= HOME ================= */}
         <Route path="/" element={<Home />} />
+
+
+        <Route path="/joy" element={<JoyWall />} />
+        <Route path="/joy/create" element={<CreateJoyPost />} />
+        <Route path="/admin/joy-posts" element={<AdminJoyPosts />} />
 
         {/* ================= AUTH ================= */}
         <Route path="/register" element={<Register />} />

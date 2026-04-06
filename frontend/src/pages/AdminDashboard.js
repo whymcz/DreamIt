@@ -104,27 +104,33 @@ function AdminDashboard() {
 
   const renderStatus = (status) => {
 
-    const style = {
-      padding: "4px 10px",
-      borderRadius: "20px",
-      fontSize: "12px",
-      fontWeight: "bold",
-      color: "white"
-    };
+  if (!status) return null;
 
-    if (status === "pending") style.background = "#f0ad4e";
-    if (status === "approved") style.background = "green";
-    if (status === "denied") style.background = "red";
-
-    return <span style={style}>{status.toUpperCase()}</span>;
-
+  const style = {
+    padding: "4px 10px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "bold",
+    color: "white"
   };
+
+  if (status === "pending") style.background = "#f0ad4e";       // orange
+  if (status === "approved") style.background = "#5a67ff";      // blue
+  if (status === "denied") style.background = "red";
+
+  if (status === "chosen") style.background = "#f0ad4e";        // mecenas pending
+  if (status === "confirmed") style.background = "#5a67ff";     // mecenas confirmed
+  if (status === "fulfilled") style.background = "green";
+  if (status === "request_denied") style.background = "red";
+
+  return <span style={style}>{status.toUpperCase()}</span>;
+};
 
   return (
 
     <AdminLayout>
 
-      <h1 style={{ marginBottom: "30px" }}>Admin Dashboard</h1>
+      <h1 style={{ marginBottom: "30px" }}>Parent Submissions</h1>
 
       {/* CARDS */}
 

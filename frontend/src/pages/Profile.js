@@ -21,6 +21,9 @@ function Profile() {
   const [dreams, setDreams] = useState([]);
   const [selectedDream, setSelectedDream] = useState(null);
 
+  const [joyText, setJoyText] = useState("");
+  const [joyMedia, setJoyMedia] = useState("");
+
   const navigate = useNavigate();
 
   /* ================= FETCH DREAMS ================= */
@@ -179,6 +182,71 @@ function Profile() {
 
   };
 
+  const generateWithAI = async () => {
+
+  try {
+
+    const res = await fetch("http://localhost:5000/generate-joy-text", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt: joyText   // optional input
+      })
+    });
+
+    const data = await res.json();
+
+    setJoyText(data.text);
+
+  } catch (error) {
+    console.log("AI error:", error);
+  }
+
+};
+
+  /* ================= SUBMIT JOY POST ================= */
+
+const submitJoyPost = async () => {
+
+  if (!joyText) {
+    alert("Please write the story");
+    return;
+  }
+
+  try {
+
+    await fetch("http://localhost:5000/joy", {
+
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+
+      body: JSON.stringify({
+  mecenasId: user._id,
+  mecenasName: user.fullName,
+  avatar: user.avatar,
+  text: joyText,
+  media: joyMedia
+})
+
+    });
+
+    alert("Post sent to admin for approval");
+
+    setJoyText("");
+    setJoyMedia("");
+
+  } catch (error) {
+
+    console.log("Joy submit error", error);
+
+  }
+
+};
+
+
+
   /* ================= STATUS BADGE ================= */
 
   const renderStatus = (status) => {
@@ -244,6 +312,17 @@ function Profile() {
           {user.role === "parent" ? "My Submissions" : "My Requests"}
         </div>
 
+        {user.role === "mecenas" && (
+
+  <div
+    className={`sidebar-item ${activeTab === "joypost" ? "active" : ""}`}
+    onClick={() => setActiveTab("joypost")}
+  >
+    Submit Joy Post
+  </div>
+
+)}
+
         <div className="logout" onClick={handleLogout}>
           Logout
         </div>
@@ -251,6 +330,8 @@ function Profile() {
       </div>
 
       <div className="profile-content">
+
+        
 
         
 
@@ -531,7 +612,135 @@ function Profile() {
 
         )}
 
+        {/* JOY POST TAB */}
+
+{activeTab === "joypost" && user.role === "mecenas" && (
+
+  <div className="profile-form">
+
+  <h2 style={{ marginBottom: "10px" }}>
+    Submit Joy Post
+  </h2>
+
+  <p style={{ marginBottom: "20px", color: "#777" }}>
+    Share a fulfilled dream moment with the community.
+  </p>
+
+  {/* IMAGE CARD */}
+  <div style={{
+    background: "#fff",
+    padding: "20px",
+    borderRadius: "12px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+    marginBottom: "20px"
+  }}>
+    <label style={{ fontWeight: "bold" }}>Upload Image</label>
+
+    <input
+      type="file"
+      accept="image/*"
+      style={{ marginTop: "10px" }}
+      onChange={(e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onloadend = () => {
+          setJoyMedia(reader.result);
+        };
+
+        reader.readAsDataURL(file);
+      }}
+    />
+
+    {joyMedia && (
+      <img
+        src={joyMedia}
+        alt="preview"
+        style={{
+          width: "100%",
+          marginTop: "15px",
+          borderRadius: "10px",
+          maxHeight: "300px",
+          objectFit: "cover"
+        }}
+      />
+    )}
+  </div>
+
+  {/* STORY CARD */}
+  <div style={{
+  background: "#fff",
+  padding: "20px",
+  borderRadius: "12px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+  marginBottom: "20px",
+  display: "flex",
+  flexDirection: "column"   // ⭐ IMPORTANT
+}}>
+    <label style={{ fontWeight: "bold" }}>Story</label>
+
+    <textarea
+  value={joyText}
+  onChange={(e) => setJoyText(e.target.value)}
+  placeholder="Tell how the dream came true..."
+  style={{
+    width: "100%",
+    marginTop: "10px",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1px solid #ddd",
+    fontSize: "14px",
+    resize: "none",
+    minHeight: "120px",
+    outline: "none",
+    lineHeight: "1.5",
+    boxSizing: "border-box"   // ⭐ THIS IS THE FIX
+  }}
+/>
+
+    {/* AI BUTTON (we'll make it work next) */}
+    <button
+  onClick={generateWithAI}
+  style={{
+    marginTop: "10px",
+    background: "#5a67ff",
+    color: "white",
+    border: "none",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    cursor: "pointer"
+  }}
+>
+  Generate with AI
+</button>
+  </div>
+
+  {/* SUBMIT */}
+  <button
+    className="save-btn"
+    onClick={submitJoyPost}
+    style={{
+      width: "100%",
+      padding: "12px",
+      fontSize: "16px"
+    }}
+  >
+    Send
+  </button>
+
+</div>
+
+)}
+
       </div>
+
+      {/* SUBMIT JOY POST */}
+
+
+
+      
 
       {/* MODAL */}
 

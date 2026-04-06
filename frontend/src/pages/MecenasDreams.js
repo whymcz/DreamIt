@@ -14,18 +14,22 @@ function MecenasDreams() {
   /* ================= FETCH DREAMS ================= */
 
   const fetchDreams = async () => {
-    try {
+  try {
 
-      const response = await fetch("http://localhost:5000/dreams/approved");
+    const user = JSON.parse(localStorage.getItem("user"));
 
-      const data = await response.json();
+    const response = await fetch(
+      `http://localhost:5000/dreams/approved?mecenasId=${user._id}`
+    );
 
-      setDreams(data);
+    const data = await response.json();
 
-    } catch (error) {
-      console.log("Failed to fetch dreams", error);
-    }
-  };
+    setDreams(data);
+
+  } catch (error) {
+    console.log("Failed to fetch dreams", error);
+  }
+};
 
   useEffect(() => {
     fetchDreams();
@@ -94,7 +98,7 @@ function MecenasDreams() {
       <h1 style={titleStyle}>Dream List</h1>
 
       <p style={subtitleStyle}>
-        Choose a dream and make a child happy ✨
+        Choose a dream and make a child happy 
       </p>
 
       <div style={listWrapper}>
@@ -119,6 +123,17 @@ function MecenasDreams() {
             <p>
               <strong>City:</strong> {dream.city}
             </p>
+
+            {/* NEW: request count */}
+            <p style={{ color: "#666", marginTop: "6px" }}>
+   {dream.requestCount || 0} mecenas requested
+</p>
+
+{dream.userRequested && (
+  <p style={{ color: "#6ab187", fontWeight: "600", marginTop: "4px" }}>
+    ✔ You already requested this dream
+  </p>
+)}
 
             <p style={{ marginTop: "10px" }}>
               {dream.description.slice(0, 120)}...
@@ -186,12 +201,22 @@ function MecenasDreams() {
             )}
 
             <button
-              style={fulfillButton}
-              onClick={() => setConfirmModal(true)}
-              disabled={sendingRequest}
-            >
-              Make Dream Come True ✨
-            </button>
+  style={{
+    ...fulfillButton,
+    background: selectedDream.userRequested ? "#ccc" : "#f4b942",
+    cursor: selectedDream.userRequested ? "not-allowed" : "pointer"
+  }}
+  onClick={() => {
+    if (!selectedDream.userRequested) {
+      setConfirmModal(true);
+    }
+  }}
+  disabled={sendingRequest || selectedDream.userRequested}
+>
+  {selectedDream.userRequested
+    ? "Already Requested"
+    : "Make Dream Come True ✨"}
+</button>
 
           </div>
 

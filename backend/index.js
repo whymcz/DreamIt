@@ -1,8 +1,10 @@
+const config = require("./config");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const express = require("express");
 const User = require("./models/User");
 const Dream = require("./models/Dream");
+const JoyPost = require("./models/JoyPost");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -16,6 +18,8 @@ const app = express();
 
 const Notification = require("./models/Notification");
 const Message = require("./models/Message");
+
+const Request = require("./models/Request");
 
 const createNotification = async (userId, message, link = "") => {
 
@@ -566,7 +570,7 @@ app.get("/admin/users", verifyAdmin, async (req, res) => {
 app.get("/dreams/approved", async (req, res) => {
   try {
 
-    const { city, gender, minAge, maxAge } = req.query;
+    const { city, gender, minAge, maxAge, mecenasId } = req.query;
 
     let filter = {
       status: "approved"
@@ -596,19 +600,53 @@ app.get("/dreams/approved", async (req, res) => {
       .populate("parentId", "fullName")
       .sort({ createdAt: -1 });
 
-    res.json(dreams);
+    // attach request info to each dream
+    const dreamsWithRequests = await Promise.all(
+      dreams.map(async (dream) => {
+
+        const requestCount = await Request.countDocuments({
+          dreamId: dream._id
+        });
+
+        let userRequested = false;
+
+        if (mecenasId) {
+          const existing = await Request.findOne({
+            dreamId: dream._id,
+            mecenasId
+          });
+
+          if (existing) {
+            userRequested = true;
+          }
+        }
+
+        return {
+          ...dream.toObject(),
+          requestCount,
+          userRequested
+        };
+
+      })
+    );
+
+    res.json(dreamsWithRequests);
 
   } catch (error) {
+
     console.log(error);
+
     res.status(500).json({
       message: "Failed to fetch approved dreams"
     });
+
   }
 });
 
 /* ================= MECENAS: REQUEST TO FULFILL DREAM ================= */
 
 app.post("/dreams/request", async (req, res) => {
+
   try {
 
     const { dreamId, mecenasId } = req.body;
@@ -633,101 +671,158 @@ app.post("/dreams/request", async (req, res) => {
       });
     }
 
-    dream.status = "chosen";
-    dream.mecenasId = mecenasId;
-    await createNotification(
-  dream.parentId,
-  `A mecenas wants to fulfill your dream "${dream.title}".`,
-  "/profile?tab=submissions"
-);
+    // prevent duplicate requests
+    const existingRequest = await Request.findOne({
+      dreamId,
+      mecenasId
+    });
 
-    await dream.save();
+    if (existingRequest) {
+      return res.json({
+        message: "You already requested this dream."
+      });
+    }
+
+    // create request
+    await Request.create({
+      dreamId,
+      mecenasId
+    });
+
+    await createNotification(
+      dream.parentId,
+      `A mecenas requested to fulfill "${dream.title}".`,
+      "/profile?tab=submissions"
+    );
 
     res.json({
-      message: "Request sent! Admin will review it."
+      message: "Request sent successfully!"
     });
 
   } catch (error) {
+
     console.log(error);
+
     res.status(500).json({
       message: "Failed to send request"
     });
+
   }
+
 });
 
 /* ================= ADMIN: MECENAS REQUEST ACTION ================= */
 
 app.patch("/admin/mecenas-request/:id", verifyAdmin, async (req, res) => {
+
   try {
 
     const { action, comment } = req.body;
 
-    const dream = await Dream.findById(req.params.id);
+    const request = await Request.findById(req.params.id);
+
+    if (!request) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    const dream = await Dream.findById(request.dreamId);
 
     if (!dream) {
       return res.status(404).json({ message: "Dream not found" });
     }
 
-    if (action === "approve") {
-      dream.status = "confirmed";
-      await createNotification(
-  dream.mecenasId,
-  `Admin approved your request to fulfill "${dream.title}".`,
-  `/messages/${dream._id}`
-);
+    /* APPROVE REQUEST */
 
-await createNotification(
-  dream.parentId,
-  `Admin approved a mecenas request for "${dream.title}". You can now communicate.`,
-  `/messages/${dream._id}`
-);
+    if (action === "approve") {
+
+      request.status = "approved";
+      await request.save();
+
+      /* deny all other requests for this dream */
+
+      await Request.updateMany(
+        {
+          dreamId: request.dreamId,
+          _id: { $ne: request._id }
+        },
+        { status: "denied" }
+      );
+
+      /* update dream */
+
+      dream.status = "confirmed";
+      dream.mecenasId = request.mecenasId;
+
+      await dream.save();
+
+      await createNotification(
+        request.mecenasId,
+        `Admin approved your request to fulfill "${dream.title}".`,
+        `/messages/${dream._id}`
+      );
+
+      await createNotification(
+        dream.parentId,
+        `Admin approved a mecenas request for "${dream.title}".`,
+        `/messages/${dream._id}`
+      );
+
     }
+
+    /* DENY REQUEST */
 
     if (action === "deny") {
 
-  if (!comment || comment.trim() === "") {
-    return res.status(400).json({
-      message: "Comment required when denying request"
-    });
-  }
+      if (!comment || comment.trim() === "") {
+        return res.status(400).json({
+          message: "Comment required when denying request"
+        });
+      }
 
-  dream.status = "request_denied";
-await createNotification(
-  dream.mecenasId,
-  `Admin denied your request to fulfill "${dream.title}".`,
-  "/profile?tab=requests"
-);
+      request.status = "denied";
+      await request.save();
 
-  dream.adminComment = comment.trim();
-
-  // keep mecenasId so the user can still see the denied request
-}
-
-    if (action === "fulfill") {
-      dream.status = "fulfilled";
       await createNotification(
-  dream.parentId,
-  `Your dream "${dream.title}" has been fulfilled!`,
-  `/messages/${dream._id}`
-);
+        request.mecenasId,
+        `Admin denied your request to fulfill "${dream.title}".`,
+        "/profile?tab=requests"
+      );
 
-await createNotification(
-  dream.mecenasId,
-  `You successfully fulfilled the dream "${dream.title}".`,
-  `/messages/${dream._id}`
-);
     }
 
-    await dream.save();
+    /* MARK FULFILLED */
+
+    if (action === "fulfill") {
+
+      dream.status = "fulfilled";
+      await dream.save();
+
+      await createNotification(
+        dream.parentId,
+        `Your dream "${dream.title}" has been fulfilled!`,
+        `/messages/${dream._id}`
+      );
+
+      await createNotification(
+        dream.mecenasId,
+        `You successfully fulfilled the dream "${dream.title}".`,
+        `/messages/${dream._id}`
+      );
+
+    }
 
     res.json({ message: "Request updated successfully" });
 
   } catch (error) {
+
     console.log(error);
+
     res.status(500).json({
       message: "Failed to update request"
     });
+
   }
+
 });
 
 /* ================= ADMIN: MECENAS REQUEST STATS ================= */
@@ -736,21 +831,20 @@ app.get("/admin/mecenas-requests-stats", verifyAdmin, async (req, res) => {
 
   try {
 
-    const total = await Dream.countDocuments({
-  status: { $in: ["chosen", "confirmed", "fulfilled", "request_denied"] }
-});
-
-    const chosen = await Dream.countDocuments({ status: "chosen" });
+    const pending = await Request.countDocuments({ status: "pending" });
+    const approved = await Request.countDocuments({ status: "approved" });
+    const denied = await Request.countDocuments({ status: "denied" });
 
     const confirmed = await Dream.countDocuments({ status: "confirmed" });
-
     const fulfilled = await Dream.countDocuments({ status: "fulfilled" });
 
-    const denied = await Dream.countDocuments({ status: "request_denied" });
+    const total = await Dream.countDocuments({
+  status: { $in: ["confirmed", "fulfilled", "request_denied"] }
+});
 
     res.json({
       total,
-      chosen,
+      chosen: pending,
       confirmed,
       fulfilled,
       denied
@@ -769,6 +863,7 @@ app.get("/admin/mecenas-requests-stats", verifyAdmin, async (req, res) => {
 });
 
 /* ================= ADMIN: GET MECENAS REQUESTS ================= */
+
 app.get("/admin/mecenas-requests", verifyAdmin, async (req, res) => {
 
   try {
@@ -777,14 +872,26 @@ app.get("/admin/mecenas-requests", verifyAdmin, async (req, res) => {
 
     let filter = {};
 
-    // show all mecenas requests
-    if (!status || status === "all") {
-      filter.status = { $in: ["chosen", "confirmed", "fulfilled", "request_denied"] };
+    if (status === "chosen") {
+      filter.status = "chosen";
     }
 
-    // filter by specific status
-    else if (["chosen", "confirmed", "fulfilled", "request_denied"].includes(status)) {
-      filter.status = status;
+    if (status === "confirmed") {
+      filter.status = "confirmed";
+    }
+
+    if (status === "fulfilled") {
+      filter.status = "fulfilled";
+    }
+
+    if (status === "request_denied") {
+      filter.status = "request_denied";
+    }
+
+    if (status === "all") {
+      filter.status = { 
+        $in: ["chosen", "confirmed", "fulfilled", "request_denied"] 
+      };
     }
 
     const dreams = await Dream.find(filter)
@@ -800,6 +907,55 @@ app.get("/admin/mecenas-requests", verifyAdmin, async (req, res) => {
 
     res.status(500).json({
       message: "Failed to fetch mecenas requests"
+    });
+
+  }
+
+});
+
+/* ================= ADMIN: GET PENDING DREAMS WITH REQUESTS ================= */
+
+app.get("/admin/pending-dreams-with-requests", verifyAdmin, async (req, res) => {
+
+  try {
+
+    // get all pending requests
+    const requests = await Request.find({ status: "pending" })
+      .populate("mecenasId", "fullName")
+      .populate({
+        path: "dreamId",
+        populate: { path: "parentId", select: "fullName" }
+      });
+
+    const dreamMap = {};
+
+    for (const reqItem of requests) {
+
+      const dream = reqItem.dreamId;
+
+      if (!dreamMap[dream._id]) {
+
+        dreamMap[dream._id] = {
+          dream: dream,
+          requests: []
+        };
+
+      }
+
+      dreamMap[dream._id].requests.push(reqItem);
+
+    }
+
+    const result = Object.values(dreamMap);
+
+    res.json(result);
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message: "Failed to fetch pending dreams"
     });
 
   }
@@ -1071,6 +1227,274 @@ app.get("/messages/unread/:userId", async (req, res) => {
   }
 
 });
+
+/* ================= JOY API ================= */
+app.get("/joy", async (req, res) => {
+
+  try {
+
+    const posts = await JoyPost.find({ status: "approved" })
+      .sort({ createdAt: -1 });
+
+    res.json(posts);
+
+  } catch (error) {
+
+    console.log("Joy fetch error:", error);
+
+    res.status(500).json({
+      message: "Failed to load joy wall"
+    });
+
+  }
+
+});
+/* ================= JOY WALL ================= */
+
+/* CREATE JOY POST */
+
+app.post("/joy", async (req, res) => {
+
+  try {
+
+    const { dreamId, mecenasId, mecenasName, media, text, avatar } = req.body;
+
+    const post = new JoyPost({
+  dreamId,
+  mecenasId,
+  mecenasName,
+  media,
+  text,
+  avatar,
+  status: "pending"
+});
+
+    await post.save();
+
+    res.json({
+      message: "Post submitted for approval"
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message: "Failed to submit joy post"
+    });
+
+  }
+
+});
+
+
+/* GET PUBLIC JOY WALL */
+
+app.get("/joy", async (req, res) => {
+
+  try {
+
+    const posts = await JoyPost.find({ status: "approved" })
+      .sort({ createdAt: -1 });
+
+    res.json(posts);
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message: "Failed to fetch joy posts"
+    });
+
+  }
+
+});
+
+
+/* ADMIN: GET PENDING JOY POSTS */
+
+app.get("/admin/joy-posts", verifyAdmin, async (req, res) => {
+
+  try {
+
+    const posts = await JoyPost.find({ status: "pending" })
+      .sort({ createdAt: -1 });
+
+    res.json(posts);
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message: "Failed to fetch joy posts"
+    });
+
+  }
+
+});
+
+
+/* ADMIN: APPROVE / DELETE JOY POST */
+
+app.patch("/admin/joy-post/:id", verifyAdmin, async (req, res) => {
+
+  try {
+
+    const { action } = req.body;
+
+    const post = await JoyPost.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    if (action === "approve") {
+      post.status = "approved";
+      await post.save();
+    }
+
+    if (action === "deny") {
+      await JoyPost.findByIdAndDelete(req.params.id);
+    }
+
+    res.json({ message: "Post updated" });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message: "Failed to update joy post"
+    });
+
+  }
+
+});
+
+
+/*=================== likes =================*/
+
+app.post("/joy/:id/like", async (req, res) => {
+
+  try {
+
+    const { userId } = req.body;
+
+    const post = await JoyPost.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const alreadyLiked = post.likes.includes(userId);
+
+    if (alreadyLiked) {
+
+      post.likes = post.likes.filter(
+        id => id.toString() !== userId
+      );
+
+    } else {
+
+      post.likes.push(userId);
+
+    }
+
+    await post.save();
+
+    res.json({
+      likes: post.likes.length
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message: "Like error"
+    });
+
+  }
+
+});
+
+/* ================= comments ================= */
+
+app.post("/joy/:id/comment", async (req, res) => {
+
+  try {
+
+    const { userId, userName, text } = req.body;
+
+    const post = await JoyPost.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    post.comments.push({
+      userId,
+      userName,
+      text
+    });
+
+    await post.save();
+
+    res.json(post);
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({ message: "Comment error" });
+
+  }
+
+});
+
+/* ================= AI text generator for joyposts ================= */
+
+const OpenAI = require("openai");
+
+const openai = new OpenAI({
+  apiKey: config.openaiKey
+});
+
+app.post("/generate-joy-text", async (req, res) => {
+
+  try {
+
+    const { prompt } = req.body;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You help write emotional and inspiring short stories about fulfilling children's dreams."
+        },
+        {
+          role: "user",
+          content: `Write a short heartfelt story about fulfilling a child's dream. Context: ${prompt}`
+        }
+      ],
+      max_tokens: 150
+    });
+
+    const text = response.choices[0].message.content;
+
+    res.json({ text });
+
+  } catch (error) {
+    console.log("AI error:", error);
+    res.status(500).json({ error: "AI failed" });
+  }
+
+});
+
+
 
 /* ================= SERVER ================= */
 

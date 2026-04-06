@@ -35,6 +35,14 @@ function AdminLayout({ children }) {
             Mecenas Requests
           </Link>
 
+          {/* NEW TAB */}
+          <Link
+            style={isActive("/admin/joy-posts") ? activeLinkStyle : linkStyle}
+            to="/admin/joy-posts"
+          >
+            Joy Post Requests
+          </Link>
+
           <Link
             style={isActive("/admin/users") ? activeLinkStyle : linkStyle}
             to="/admin/users"

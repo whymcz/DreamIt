@@ -53,23 +53,36 @@ function AdminMecenasRequests() {
   /* ================= OPEN LIST ================= */
 
   const openList = async (status) => {
-    try {
 
-      const token = localStorage.getItem("token");
+  try {
 
-      const res = await axios.get(
-        `http://localhost:5000/admin/mecenas-requests?status=${status}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    const token = localStorage.getItem("token");
 
-      setDreams(res.data);
-      setSelectedFilter(status);
-      setViewMode("list");
+    let url = "";
 
-    } catch (error) {
-      console.log("Fetch requests error", error);
+    // special route for pending cards
+    if (status === "pending") {
+      url = "http://localhost:5000/admin/pending-dreams-with-requests";
+    } else {
+      url = `http://localhost:5000/admin/mecenas-requests?status=${status}`;
     }
-  };
+
+    const res = await axios.get(
+      url,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setDreams(res.data);
+    setSelectedFilter(status);
+    setViewMode("list");
+
+  } catch (error) {
+
+    console.log("Fetch requests error", error);
+
+  }
+
+};
 
   /* ================= UPDATE REQUEST ================= */
 
@@ -100,22 +113,23 @@ function AdminMecenasRequests() {
 
   const renderStatus = (status) => {
 
-    const style = {
-      padding: "4px 10px",
-      borderRadius: "20px",
-      fontSize: "12px",
-      fontWeight: "bold",
-      color: "white"
-    };
+  if (!status) return null;
 
-    if (status === "chosen") style.background = "#f0ad4e";
-    if (status === "confirmed") style.background = "#5a67ff";
-    if (status === "fulfilled") style.background = "green";
-    if (status === "request_denied") style.background = "red";
-
-    return <span style={style}>{status.toUpperCase()}</span>;
+  const style = {
+    padding: "4px 10px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "bold",
+    color: "white"
   };
 
+  if (status === "chosen") style.background = "#f0ad4e";        // Pending
+  if (status === "confirmed") style.background = "#5a67ff";     // Confirmed
+  if (status === "fulfilled") style.background = "green";       // Fulfilled
+  if (status === "request_denied") style.background = "red";    // Denied
+
+  return <span style={style}>{status.toUpperCase()}</span>;
+};
   return (
     <AdminLayout>
 
@@ -139,7 +153,7 @@ function AdminMecenasRequests() {
           <StatCard
             title="Pending Requests"
             number={stats.chosen}
-            onClick={() => openList("chosen")}
+            onClick={() => openList("pending")}
           />
 
           <StatCard
@@ -173,105 +187,168 @@ function AdminMecenasRequests() {
 
       {viewMode === "list" && (
 
-        <div style={{ marginTop: "20px" }}>
+  <div style={{ marginTop: "20px" }}>
 
-          <button
-            style={backBtn}
-            onClick={() => setViewMode("cards")}
-          >
-            ← Back
-          </button>
+    <button
+      style={backBtn}
+      onClick={() => setViewMode("cards")}
+    >
+      ← Back
+    </button>
 
-          <h2 style={{ marginBottom: "20px" }}>
-            {selectedFilter.toUpperCase()} REQUESTS
-          </h2>
+    <h2 style={{ marginBottom: "20px" }}>
+      {selectedFilter.toUpperCase()} REQUESTS
+    </h2>
 
-          {dreams.length === 0 ? (
-            <p>No requests found.</p>
-          ) : (
+   
 
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th>Dream</th>
-                  <th>Child</th>
-                  <th>Mecenas</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
+{selectedFilter === "pending" && (
 
-              <tbody>
+  dreams.map((item) => (
 
-                {dreams.map((dream) => (
+    <div key={item.dream._id} style={dreamCardAdmin}>
 
-                  <tr key={dream._id}>
+      <h3>{item.dream.title}</h3>
 
-                    <td>{dream.title}</td>
-                    <td>{dream.childName}</td>
-                    <td>{dream.mecenasId?.fullName}</td>
-                    <td>{renderStatus(dream.status)}</td>
+      <p><strong>Child:</strong> {item.dream.childName}</p>
+      <p><strong>Age:</strong> {item.dream.age}</p>
+      <p><strong>City:</strong> {item.dream.city}</p>
 
-                    <td>
+      <p style={{ marginTop: "10px", color: "#666" }}>
+        {item.requests.length} mecenas requested
+      </p>
 
-                      <button
-                        style={viewBtn}
-                        onClick={() => setSelectedDream(dream)}
-                      >
-                        View
-                      </button>
+      <div style={{ marginTop: "20px" }}>
 
-                      {dream.status === "chosen" && (
-                        <>
-                          <button
-                            style={approveBtn}
-                            onClick={() => {
-                              setSelectedDream(dream);
-                              setConfirmAction("approve");
-                            }}
-                          >
-                            Approve
-                          </button>
+        {item.requests.map((req) => (
 
-                          <button
-                            style={denyBtn}
-                            onClick={() => {
-                              setSelectedDream(dream);
-                              setConfirmAction("deny");
-                            }}
-                          >
-                            Deny
-                          </button>
-                        </>
-                      )}
+          <div key={req._id} style={requestRow}>
 
-                      {dream.status === "confirmed" && (
-                        <button
-                          style={approveBtn}
-                          onClick={() => {
-                            setSelectedDream(dream);
-                            setConfirmAction("fulfill");
-                          }}
-                        >
-                          Mark Fulfilled
-                        </button>
-                      )}
+            <span>{req.mecenasId?.fullName}</span>
 
-                    </td>
+            <div>
 
-                  </tr>
+              <button
+                style={approveBtn}
+                onClick={() => {
+                  setSelectedDream({
+  _id: req._id,
+  dreamId: item.dream._id,
+  title: item.dream.title,
+  childName: item.dream.childName,
+  age: item.dream.age,
+  city: item.dream.city,
+  description: item.dream.description,
+  status: item.dream.status,
+  document: item.dream.document
+});
+                  setConfirmAction("approve");
+                }}
+              >
+                Approve
+              </button>
 
-                ))}
+              <button
+                style={denyBtn}
+                onClick={() => {
+                  setSelectedDream({
+  _id: req._id,
+  dreamId: item.dream._id,
+  title: item.dream.title,
+  childName: item.dream.childName,
+  age: item.dream.age,
+  city: item.dream.city,
+  description: item.dream.description,
+  status: item.dream.status,
+  document: item.dream.document
+});
+                  setConfirmAction("deny");
+                }}
+              >
+                Deny
+              </button>
 
-              </tbody>
+            </div>
 
-            </table>
+          </div>
 
-          )}
+        ))}
 
-        </div>
+      </div>
 
-      )}
+    </div>
+
+  ))
+
+)}
+
+    {/* TABLE VIEW FOR NON-PENDING REQUESTS */}
+
+{/* TABLE VIEW FOR NON-PENDING REQUESTS */}
+
+{/* TABLE VIEW FOR NON-PENDING REQUESTS */}
+
+{selectedFilter !== "pending" && (
+
+  dreams.length === 0 ? (
+
+    <p>No requests found.</p>
+
+  ) : (
+
+    <table style={tableStyle}>
+
+      <thead>
+        <tr>
+          <th>Child</th>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Parent</th>
+          <th>Mecenas</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        {dreams.map((dream) => (
+
+          <tr key={dream._id}>
+
+            <td>{dream.childName}</td>
+
+            <td>{dream.title}</td>
+
+            <td>{renderStatus(dream.status)}</td>
+
+            <td>{dream.parentId?.fullName}</td>
+
+            <td>{dream.mecenasId?.fullName || "-"}</td>
+
+            <td>
+              <button
+                style={viewBtn}
+                onClick={() => setSelectedDream(dream)}
+              >
+                View
+              </button>
+            </td>
+
+          </tr>
+
+        ))}
+
+      </tbody>
+
+    </table>
+
+  )
+
+)}
+
+  </div>
+
+)}
 
       {/* ================= DREAM MODAL ================= */}
 
@@ -539,6 +616,22 @@ const closeBtn = {
   borderRadius: "4px",
   border: "none",
   cursor: "pointer"
+};
+
+const dreamCardAdmin = {
+  background: "white",
+  padding: "25px",
+  borderRadius: "10px",
+  boxShadow: "0 3px 8px rgba(0,0,0,0.1)",
+  marginBottom: "25px"
+};
+
+const requestRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "10px 0",
+  borderBottom: "1px solid #eee"
 };
 
 export default AdminMecenasRequests;

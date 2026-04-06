@@ -16,7 +16,7 @@ import bellIcon from "../assets/icons/bell.png";
 import chatIcon from "../assets/icons/chat.png";
 
 function Home() {
-
+const user = JSON.parse(localStorage.getItem("user"));
   const fetchUnreadMessages = async () => {
 
   if (!user) return;
@@ -42,7 +42,7 @@ function Home() {
   const [lang, setLang] = useState("en");
   const t = translations[lang];
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  
 
   const [notifications, setNotifications] = useState([]);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -62,31 +62,32 @@ function Home() {
 
   useEffect(() => {
 
-    if (!user) return;
+  if (!user) return;
 
-    const fetchNotifications = async () => {
+  const fetchNotifications = async () => {
 
-      try {
+    try {
 
-        const res = await fetch(
-          `http://localhost:5000/notifications/${user._id}`
-        );
+      const res = await fetch(
+        `http://localhost:5000/notifications/${user._id}`
+      );
 
-        const data = await res.json();
+      const data = await res.json();
 
-        setNotifications(data);
+      setNotifications(data);
 
-      } catch (error) {
+    } catch (error) {
 
-        console.log("Notification fetch error", error);
+      console.log("Notification fetch error", error);
 
-      }
+    }
 
-    };
+  };
 
-    fetchNotifications();
+  fetchNotifications();
+  fetchUnreadMessages();   
 
-  }, []);
+}, [user]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -125,7 +126,7 @@ function Home() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "18px 60px",
+          padding: "15px 40px",
           borderBottom: "1px solid #eee",
           zIndex: 1000
         }}
@@ -146,7 +147,7 @@ function Home() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "50px",
+            gap: "40px",
             whiteSpace: "nowrap"
           }}
         >
@@ -173,6 +174,10 @@ function Home() {
 
           )}
 
+          <Link to="/joy" className="nav-link">
+  WALL OF JOY
+</Link>
+
           <span className="nav-link" onClick={() => scrollToSection("about")}>
             ABOUT US
           </span>
@@ -195,7 +200,7 @@ function Home() {
             flex: 1,
             display: "flex",
             justifyContent: "flex-end",
-            gap: "20px",
+            gap: "15px",
             alignItems: "center"
           }}
         >
@@ -293,10 +298,24 @@ function Home() {
           ) : (
 
             <Link to="/profile">
-              <div className="avatar">
-                {user.fullName.charAt(0).toUpperCase()}
-              </div>
-            </Link>
+  <div className="avatar" style={{ overflow: "hidden" }}>
+    
+    {user.avatar ? (
+      <img
+        src={user.avatar}
+        alt="avatar"
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover"
+        }}
+      />
+    ) : (
+      user.fullName.charAt(0).toUpperCase()
+    )}
+
+  </div>
+</Link>
 
           )}
 
