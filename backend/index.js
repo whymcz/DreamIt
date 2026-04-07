@@ -172,13 +172,14 @@ app.post("/login", async (req, res) => {
       message: "Login successful",
       token,
       user: {
-        _id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        avatar: user.avatar
-      }
+  _id: user._id,
+  fullName: user.fullName,
+  email: user.email,
+  role: user.role,
+  phone: user.phone,
+  avatar: user.avatar,
+  socialLinks: user.socialLinks || []
+}
     });
 
   } catch (error) {
@@ -191,7 +192,7 @@ app.post("/login", async (req, res) => {
 
 app.put("/update-profile", async (req, res) => {
   try {
-    const { userId, fullName, phone, avatar } = req.body;
+    const { userId, fullName, phone, avatar, socialLinks } = req.body;
 
     const user = await User.findById(userId);
 
@@ -199,19 +200,25 @@ app.put("/update-profile", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.fullName = fullName;
-    user.phone = phone;
-    user.avatar = avatar;
+    //  update only if provided
+    if (fullName !== undefined) user.fullName = fullName;
+    if (phone !== undefined) user.phone = phone;
+    if (avatar !== undefined) user.avatar = avatar;
+    if (socialLinks !== undefined) {
+  user.socialLinks = socialLinks; // keep array as is
+}
 
     await user.save();
 
+    //  return FULL user (IMPORTANT)
     res.json({
       _id: user._id,
       fullName: user.fullName,
       email: user.email,
       role: user.role,
       phone: user.phone,
-      avatar: user.avatar
+      avatar: user.avatar,
+      socialLinks: user.socialLinks || []
     });
 
   } catch (error) {
@@ -474,6 +481,48 @@ app.get("/parent/my-dreams/:parentId", async (req, res) => {
   }
 });
 
+/* ================= PARENT: CONFIRM DREAM ================= */
+
+app.post("/dreams/:id/confirm", async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    const dream = await Dream.findById(req.params.id);
+
+    if (!dream) {
+      return res.status(404).json({ message: "Dream not found" });
+    }
+
+    //  Check ownership
+    if (dream.parentId.toString() !== userId) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    //  Only allow if already fulfilled
+    if (dream.status !== "confirmed") {
+      return res.status(400).json({
+        message: "Dream is not ready for confirmation"
+      });
+    }
+
+    //  FINAL STEP
+    dream.status = "fulfilled";
+    await dream.save();
+
+    res.json({
+      message: "Dream confirmed successfully",
+      dream
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Failed to confirm dream"
+    });
+  }
+});
+
+
 /* ================= PARENT: UPDATE & RESUBMIT DREAM ================= */
 
 app.put("/parent/update-dream/:id", async (req, res) => {
@@ -651,6 +700,15 @@ app.post("/dreams/request", async (req, res) => {
 
     const { dreamId, mecenasId } = req.body;
 
+    //  CHECK SOCIAL LINKS
+const mecenas = await User.findById(mecenasId);
+
+if (!mecenas || !mecenas.socialLinks || mecenas.socialLinks.length === 0) {
+  return res.status(400).json({
+    message: "You must add at least 1 social media link on a Profile page before requesting a dream."
+  });
+}
+
     if (!dreamId || !mecenasId) {
       return res.status(400).json({
         message: "Dream ID and Mecenas ID are required"
@@ -710,6 +768,29 @@ app.post("/dreams/request", async (req, res) => {
   }
 
 });
+
+
+/* ================= MECENAS: GET COMPLETED DREAMS ================= */
+
+app.get("/mecenas/completed-dreams/:mecenasId", async (req, res) => {
+  try {
+
+    const dreams = await Dream.find({
+      mecenasId: req.params.mecenasId,
+      status: "fulfilled"
+    }).sort({ createdAt: -1 });
+
+    res.json(dreams);
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Failed to fetch completed dreams"
+    });
+  }
+});
+
+
 
 /* ================= ADMIN: MECENAS REQUEST ACTION ================= */
 
@@ -790,26 +871,7 @@ app.patch("/admin/mecenas-request/:id", verifyAdmin, async (req, res) => {
 
     }
 
-    /* MARK FULFILLED */
-
-    if (action === "fulfill") {
-
-      dream.status = "fulfilled";
-      await dream.save();
-
-      await createNotification(
-        dream.parentId,
-        `Your dream "${dream.title}" has been fulfilled!`,
-        `/messages/${dream._id}`
-      );
-
-      await createNotification(
-        dream.mecenasId,
-        `You successfully fulfilled the dream "${dream.title}".`,
-        `/messages/${dream._id}`
-      );
-
-    }
+    
 
     res.json({ message: "Request updated successfully" });
 
@@ -921,7 +983,7 @@ app.get("/admin/pending-dreams-with-requests", verifyAdmin, async (req, res) => 
 
     // get all pending requests
     const requests = await Request.find({ status: "pending" })
-      .populate("mecenasId", "fullName")
+  .populate("mecenasId", "fullName avatar socialLinks")
       .populate({
         path: "dreamId",
         populate: { path: "parentId", select: "fullName" }
@@ -931,20 +993,29 @@ app.get("/admin/pending-dreams-with-requests", verifyAdmin, async (req, res) => 
 
     for (const reqItem of requests) {
 
-      const dream = reqItem.dreamId;
+  const dream = reqItem.dreamId;
 
-      if (!dreamMap[dream._id]) {
+  //  COUNT FULFILLED DREAMS
+  const fulfilledCount = await Dream.countDocuments({
+  mecenasId: reqItem.mecenasId._id,
+  status: "fulfilled"
+});
 
-        dreamMap[dream._id] = {
-          dream: dream,
-          requests: []
-        };
+  if (!dreamMap[dream._id]) {
 
-      }
+    dreamMap[dream._id] = {
+      dream: dream,
+      requests: []
+    };
 
-      dreamMap[dream._id].requests.push(reqItem);
+  }
 
-    }
+  dreamMap[dream._id].requests.push({
+    ...reqItem.toObject(),
+    fulfilledCount
+  });
+
+}
 
     const result = Object.values(dreamMap);
 
@@ -1084,11 +1155,11 @@ app.post("/messages", async (req, res) => {
 
   try {
 
-    const { senderId, receiverId, dreamId, text } = req.body;
+    const { senderId, receiverId, dreamId, text, file } = req.body;
 
-    if (!text || text.trim() === "") {
-      return res.status(400).json({ message: "Message text required" });
-    }
+   if ((!text || text.trim() === "") && !file) {
+  return res.status(400).json({ message: "Message must have text or file" });
+}
 
     const dream = await Dream.findById(dreamId);
 
@@ -1105,11 +1176,12 @@ app.post("/messages", async (req, res) => {
     }
 
     const message = await Message.create({
-      senderId,
-      receiverId,
-      dreamId,
-      text
-    });
+  senderId,
+  receiverId,
+  dreamId,
+  text,
+  file
+});
 
     /* create message notification */
 
@@ -1185,8 +1257,8 @@ app.get("/messages/conversations/:userId", async (req, res) => {
         { mecenasId: userId }
       ]
     })
-    .populate("parentId", "fullName")
-    .populate("mecenasId", "fullName")
+    .populate("parentId", "fullName avatar")
+    .populate("mecenasId", "fullName avatar")
     .sort({ createdAt: -1 });
 
     res.json(dreams);
@@ -1228,27 +1300,7 @@ app.get("/messages/unread/:userId", async (req, res) => {
 
 });
 
-/* ================= JOY API ================= */
-app.get("/joy", async (req, res) => {
 
-  try {
-
-    const posts = await JoyPost.find({ status: "approved" })
-      .sort({ createdAt: -1 });
-
-    res.json(posts);
-
-  } catch (error) {
-
-    console.log("Joy fetch error:", error);
-
-    res.status(500).json({
-      message: "Failed to load joy wall"
-    });
-
-  }
-
-});
 /* ================= JOY WALL ================= */
 
 /* CREATE JOY POST */
@@ -1295,6 +1347,7 @@ app.get("/joy", async (req, res) => {
   try {
 
     const posts = await JoyPost.find({ status: "approved" })
+      .populate("mecenasId", "fullName avatar") // IMPORTANT LINE
       .sort({ createdAt: -1 });
 
     res.json(posts);
@@ -1466,21 +1519,42 @@ app.post("/generate-joy-text", async (req, res) => {
 
   try {
 
-    const { prompt } = req.body;
+    const { dreamId } = req.body;
+
+    const dream = await Dream.findById(dreamId);
+
+    if (!dream) {
+      return res.status(404).json({ error: "Dream not found" });
+    }
+
+    // Build smart prompt from dream data
+    const prompt = `
+I am a mecenas who fulfilled a child's dream.
+
+Child: ${dream.childName}
+City: ${dream.city}
+Dream: ${dream.title}
+Details: ${dream.description}
+
+Write a short emotional story (2–3 sentences) FROM MY PERSPECTIVE (first person, using "I").
+
+Make it sound natural, warm, and personal, as if I am sharing my experience after fulfilling the dream.
+Do not use third person. Do not say "the mecenas". Speak as "I". Use simple human language, not poetic or overly dramatic.
+`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [
         {
           role: "system",
-          content: "You help write emotional and inspiring short stories about fulfilling children's dreams."
+          content: "You write short emotional stories about fulfilled children's dreams."
         },
         {
           role: "user",
-          content: `Write a short heartfelt story about fulfilling a child's dream. Context: ${prompt}`
+          content: prompt
         }
       ],
-      max_tokens: 150
+      max_tokens: 100
     });
 
     const text = response.choices[0].message.content;
@@ -1492,6 +1566,37 @@ app.post("/generate-joy-text", async (req, res) => {
     res.status(500).json({ error: "AI failed" });
   }
 
+});
+
+
+/* ================= MECENAS PROFILE ================= */
+
+app.get("/joy/mecenas/:id", async (req, res) => {
+  try {
+
+    const posts = await JoyPost.find({
+  mecenasId: req.params.id,
+  status: "approved"
+}).sort({ createdAt: -1 });
+
+const mecenas = await User.findById(req.params.id);
+
+//  COUNT REAL FULFILLED DREAMS
+const fulfilledCount = await Dream.countDocuments({
+  mecenasId: req.params.id,
+  status: "fulfilled"
+});
+
+res.json({
+  posts,
+  mecenas,
+  fulfilledCount
+});
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to fetch profile" });
+  }
 });
 
 

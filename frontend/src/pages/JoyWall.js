@@ -163,9 +163,9 @@ function JoyWall() {
                     fontWeight: "bold",
                     marginRight: "10px"
                   }}>
-                    {post.avatar ? (
+                    {post.mecenasId?.avatar ? (
                       <img
-                        src={post.avatar}
+                        src={post.mecenasId?.avatar}
                         alt="avatar"
                         style={{
                           width: "100%",
@@ -174,14 +174,21 @@ function JoyWall() {
                         }}
                       />
                     ) : (
-                      post.mecenasName?.charAt(0)
+                     post.mecenasId?.fullName?.charAt(0)
                     )}
                   </div>
 
                   <div>
-                    <div style={{ fontWeight: "bold" }}>
-                      {post.mecenasName}
-                    </div>
+                    <div
+  style={{
+    fontWeight: "bold",
+    cursor: "pointer",
+    color: "#21265f"
+  }}
+  onClick={() => navigate(`/mecenas/${post.mecenasId?._id}`)}
+>
+  {post.mecenasId?.fullName}
+</div>
                     <div style={{ fontSize: "12px", color: "#777" }}>
                       {new Date(post.createdAt).toLocaleDateString()}
                     </div>

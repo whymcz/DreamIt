@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import AdminLayout from "../components/AdminLayout";
+import { FaStar } from "react-icons/fa";
+import { FaInstagram, FaFacebook, FaTiktok, FaLinkedin } from "react-icons/fa";
 
 function AdminMecenasRequests() {
 
@@ -16,6 +18,7 @@ function AdminMecenasRequests() {
   const [selectedFilter, setSelectedFilter] = useState("");
   const [dreams, setDreams] = useState([]);
   const [selectedDream, setSelectedDream] = useState(null);
+  const [selectedMecenas, setSelectedMecenas] = useState(null);
 
   const [confirmAction, setConfirmAction] = useState(null);
   const [denyComment, setDenyComment] = useState("");
@@ -214,6 +217,10 @@ function AdminMecenasRequests() {
       <p><strong>Age:</strong> {item.dream.age}</p>
       <p><strong>City:</strong> {item.dream.city}</p>
 
+<p style={{ marginTop: "10px", color: "#555" }}>
+  {item.dream.description}
+</p>
+
       <p style={{ marginTop: "10px", color: "#666" }}>
         {item.requests.length} mecenas requested
       </p>
@@ -222,57 +229,24 @@ function AdminMecenasRequests() {
 
         {item.requests.map((req) => (
 
-          <div key={req._id} style={requestRow}>
+  <div key={req._id} style={requestRow}>
 
-            <span>{req.mecenasId?.fullName}</span>
+    <span>{req.mecenasId?.fullName}</span>
 
-            <div>
+    <div>
 
-              <button
-                style={approveBtn}
-                onClick={() => {
-                  setSelectedDream({
-  _id: req._id,
-  dreamId: item.dream._id,
-  title: item.dream.title,
-  childName: item.dream.childName,
-  age: item.dream.age,
-  city: item.dream.city,
-  description: item.dream.description,
-  status: item.dream.status,
-  document: item.dream.document
-});
-                  setConfirmAction("approve");
-                }}
-              >
-                Approve
-              </button>
+  <button
+    style={viewBtn}
+    onClick={() => setSelectedMecenas(req)}
+  >
+    View
+  </button>
 
-              <button
-                style={denyBtn}
-                onClick={() => {
-                  setSelectedDream({
-  _id: req._id,
-  dreamId: item.dream._id,
-  title: item.dream.title,
-  childName: item.dream.childName,
-  age: item.dream.age,
-  city: item.dream.city,
-  description: item.dream.description,
-  status: item.dream.status,
-  document: item.dream.document
-});
-                  setConfirmAction("deny");
-                }}
-              >
-                Deny
-              </button>
+</div>
 
-            </div>
+  </div>
 
-          </div>
-
-        ))}
+))}
 
       </div>
 
@@ -499,9 +473,160 @@ function AdminMecenasRequests() {
 
       )}
 
+
+      {/* ================= MECENAS VIEW MODAL ================= */}
+
+{selectedMecenas && (
+
+  <div style={overlayStyle}>
+
+    <div style={{ ...modalStyle, textAlign: "center" }}>
+
+      {/*  AVATAR */}
+      <div style={{
+        width: "80px",
+        height: "80px",
+        borderRadius: "50%",
+        overflow: "hidden",
+        margin: "0 auto 15px",
+        background: "#5a67ff"
+      }}>
+        {selectedMecenas.mecenasId?.avatar ? (
+          <img
+            src={selectedMecenas.mecenasId.avatar}
+            alt="avatar"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <div style={{
+            color: "white",
+            fontSize: "28px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%"
+          }}>
+            {selectedMecenas.mecenasId?.fullName?.charAt(0)}
+          </div>
+        )}
+      </div>
+
+      {/*  NAME */}
+      <h2>{selectedMecenas.mecenasId?.fullName}</h2>
+
+      {/*  STARS */}
+      <div style={{ margin: "10px 0" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: "6px" }}>
+  {Array.from({ length: selectedMecenas.fulfilledCount || 0 }).map((_, i) => (
+    <FaStar key={i} size={20} color="#f5c518" />
+  ))}
+</div>
+      </div>
+
+      {/*  SOCIAL ICONS */}
+      <div style={{ marginTop: "20px" }}>
+
+        <div style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: "10px"
+        }}>
+
+          {selectedMecenas.mecenasId?.socialLinks?.map((link, i) => {
+
+  const cleanUrl = link.url.startsWith("http")
+    ? link.url
+    : `https://${link.url}`;
+
+  let icon = null;
+
+  if (link.platform === "instagram") icon = <FaInstagram size={20} />;
+  if (link.platform === "facebook") icon = <FaFacebook size={20} />;
+  if (link.platform === "tiktok") icon = <FaTiktok size={20} />;
+  if (link.platform === "linkedin") icon = <FaLinkedin size={20} />;
+
+  return (
+    <a
+      key={i}
+      href={cleanUrl}
+      target="_blank"
+      rel="noreferrer"
+      style={{
+        padding: "10px",
+        background: "#eee",
+        borderRadius: "50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}
+    >
+      {icon}
+    </a>
+  );
+
+})}
+
+        </div>
+
+      </div>
+
+      <div style={{
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "12px",
+  marginTop: "25px"
+}}>
+
+  <button
+    style={approveBtn}
+    onClick={() => {
+      setSelectedDream({
+        _id: selectedMecenas._id,
+        dreamId: selectedMecenas.dreamId
+      });
+      setConfirmAction("approve");
+      setSelectedMecenas(null);
+    }}
+  >
+    Approve
+  </button>
+
+  <button
+    style={denyBtn}
+    onClick={() => {
+      setSelectedDream({
+        _id: selectedMecenas._id,
+        dreamId: selectedMecenas.dreamId
+      });
+      setConfirmAction("deny");
+      setSelectedMecenas(null);
+    }}
+  >
+    Deny
+  </button>
+
+  <button
+    style={closeBtn}
+    onClick={() => setSelectedMecenas(null)}
+  >
+    Close
+  </button>
+
+</div>
+
+    </div>
+
+  </div>
+
+)}
+
     </AdminLayout>
+
+    
   );
 }
+
 
 /* ================= COMPONENT ================= */
 
@@ -553,23 +678,26 @@ const viewBtn = {
   marginRight: "6px"
 };
 
-const approveBtn = {
-  background: "green",
-  color: "white",
+const actionBtn = {
+  padding: "10px 16px",
+  borderRadius: "8px",
   border: "none",
-  padding: "6px 12px",
-  borderRadius: "4px",
   cursor: "pointer",
-  marginRight: "6px"
+  fontSize: "14px",
+  transition: "0.2s",
+  minWidth: "90px"
+};
+
+const approveBtn = {
+  ...actionBtn,
+  background: "#22c55e",
+  color: "white"
 };
 
 const denyBtn = {
-  background: "red",
-  color: "white",
-  border: "none",
-  padding: "6px 12px",
-  borderRadius: "4px",
-  cursor: "pointer"
+  ...actionBtn,
+  background: "#ef4444",
+  color: "white"
 };
 
 const backBtn = {
@@ -611,11 +739,10 @@ const confirmModalStyle = {
 };
 
 const closeBtn = {
-  marginTop: "20px",
-  padding: "8px 15px",
-  borderRadius: "4px",
-  border: "none",
-  cursor: "pointer"
+  ...actionBtn,
+  background: "#e5e7eb",
+  color: "#111",
+  marginTop: "0px"
 };
 
 const dreamCardAdmin = {

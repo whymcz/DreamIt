@@ -42,18 +42,19 @@ const DreamSchema = new mongoose.Schema({
   },
 
   status: {
-    type: String,
-    enum: [
-      "pending",
-      "approved",
-      "denied",
-      "chosen",
-      "confirmed",
-      "fulfilled",
-      "request_denied" // added for mecenas denied requests
-    ],
-    default: "pending"
-  },
+  type: String,
+  enum: [
+    "pending",
+    "approved",
+    "denied",
+    "chosen",
+    "confirmed",
+    "fulfilled",
+    "completed", 
+    "request_denied"
+  ],
+  default: "pending"
+},
 
   // ADMIN COMMENT (for denied dreams or denied requests)
   adminComment: {

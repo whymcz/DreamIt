@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
+import EmojiPicker from "emoji-picker-react";
 
 function Messages() {
 
@@ -14,6 +15,9 @@ function Messages() {
   const [selectedDream, setSelectedDream] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
+  const [file, setFile] = useState(null);
+  const [showEmoji, setShowEmoji] = useState(false);
+
 
   const messagesEndRef = useRef(null);
 
@@ -46,6 +50,25 @@ function Messages() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+
+  const onEmojiClick = (emojiData) => {
+     setText(prev => prev + emojiData.emoji);
+  };
+  
+
+  const handleFileChange = (e) => {
+  const selected = e.target.files[0];
+
+  if (!selected) return;
+
+  const reader = new FileReader();
+
+  reader.onloadend = () => {
+    setFile(reader.result); // base64
+  };
+
+  reader.readAsDataURL(selected);
+};
 
 
   /* ================= LOAD CONVERSATIONS ================= */
@@ -162,11 +185,12 @@ function Messages() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            senderId: user._id,
-            receiverId,
-            dreamId: selectedDream._id,
-            text
-          })
+  senderId: user._id,
+  receiverId,
+  dreamId: selectedDream._id,
+  text,
+  file
+})
         }
       );
 
@@ -190,6 +214,7 @@ function Messages() {
     }
 
   };
+  
 
 
 
@@ -248,26 +273,66 @@ function Messages() {
               return (
 
                 <div
-                  key={dream._id}
-                  style={{
-                    padding: "15px",
-                    borderBottom: "1px solid #eee",
-                    cursor: "pointer",
-                    background:
-                      selectedDream?._id === dream._id
-                        ? "#f5f8ff"
-                        : "white"
-                  }}
-                  onClick={() => openChat(dream)}
-                >
+  key={dream._id}
+  style={{
+    padding: "12px 15px",
+    borderBottom: "1px solid #eee",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    background:
+      selectedDream?._id === dream._id
+        ? "#f5f8ff"
+        : "white"
+  }}
+  onClick={() => openChat(dream)}
+>
+  {/* AVATAR */}
+  <div style={{
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    background: "#5a67ff"
+  }}>
+    {otherUser.avatar ? (
+      <img
+        src={otherUser.avatar}
+        alt="avatar"
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover"
+        }}
+      />
+    ) : (
+      <div style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "white",
+        fontWeight: "bold"
+      }}>
+        {otherUser.fullName.charAt(0)}
+      </div>
+    )}
+  </div>
 
-                  <strong>{otherUser.fullName}</strong>
+  {/* NAME + DREAM (VERTICAL FIX) */}
+<div style={{ display: "flex", flexDirection: "column" }}>
+  <div style={{ fontWeight: "bold" }}>
+    {otherUser.fullName}
+  </div>
 
-                  <div style={{ fontSize: "13px", color: "#777" }}>
-                    Dream: {dream.title}
-                  </div>
-
-                </div>
+  <div style={{ fontSize: "13px", color: "#777" }}>
+    {dream.title}
+  </div>
+</div>
+</div>
+                
 
               );
 
@@ -295,24 +360,81 @@ function Messages() {
 
               {/* HEADER */}
 
-              <div
-                style={{
-                  padding: "15px",
-                  borderBottom: "1px solid #eee"
-                }}
-              >
+<div style={{
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  padding: "15px",
+  borderBottom: "1px solid #eee"
+}}>
 
-                <strong>
-                  {user._id === selectedDream.parentId._id
-                    ? selectedDream.mecenasId.fullName
-                    : selectedDream.parentId.fullName}
-                </strong>
+  {/* AVATAR */}
+  <div style={{
+  width: "45px",
+  height: "45px",
+  borderRadius: "50%",
+  overflow: "hidden",
+  background: "#5a67ff"
+}}>
+  {(
+    user._id === selectedDream.parentId._id
+      ? selectedDream.mecenasId.avatar
+      : selectedDream.parentId.avatar
+  ) ? (
+    <img
+      src={
+        user._id === selectedDream.parentId._id
+          ? selectedDream.mecenasId.avatar
+          : selectedDream.parentId.avatar
+      }
+      alt="avatar"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover"
+      }}
+    />
+  ) : (
+    <div style={{
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "white",
+      fontWeight: "bold"
+    }}>
+      {(user._id === selectedDream.parentId._id
+        ? selectedDream.mecenasId.fullName
+        : selectedDream.parentId.fullName
+      ).charAt(0)}
+    </div>
+  )}
+</div>
 
-                <div style={{ fontSize: "13px", color: "#777" }}>
-                  Dream: {selectedDream.title}
-                </div>
+  {/* NAME + DREAM */}
+  <div>
+    <div
+      style={{ fontWeight: "bold", cursor: "pointer" }}
+      onClick={() => {
+  if (user._id === selectedDream.parentId._id) {
+    navigate(`/mecenas/${selectedDream.mecenasId._id}`);
+  } else {
+    navigate(`/parent/${selectedDream.parentId._id}`);
+  }
+}}
+    >
+      {user._id === selectedDream.parentId._id
+        ? selectedDream.mecenasId.fullName
+        : selectedDream.parentId.fullName}
+    </div>
 
-              </div>
+    <div style={{ fontSize: "13px", color: "#777" }}>
+      Dream: {selectedDream.title}
+    </div>
+  </div>
+
+</div>
 
 
 
@@ -349,29 +471,56 @@ function Messages() {
                     >
 
                       {!isMine && (
-                        <div
-                          style={{
-                            width: "30px",
-                            height: "30px",
-                            borderRadius: "50%",
-                            background: "#ccc",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "12px",
-                            fontWeight: "bold"
-                          }}
-                        >
-                          {selectedDream.parentId.fullName.charAt(0)}
-                        </div>
-                      )}
+  <div style={{
+    width: "30px",
+    height: "30px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    background: "#ccc"
+  }}>
+    {(
+      senderId === selectedDream.parentId._id
+        ? selectedDream.parentId.avatar
+        : selectedDream.mecenasId.avatar
+    ) ? (
+      <img
+        src={
+          senderId === selectedDream.parentId._id
+            ? selectedDream.parentId.avatar
+            : selectedDream.mecenasId.avatar
+        }
+        alt="avatar"
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover"
+        }}
+      />
+    ) : (
+      <div style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "12px",
+        fontWeight: "bold"
+      }}>
+        {(senderId === selectedDream.parentId._id
+          ? selectedDream.parentId.fullName
+          : selectedDream.mecenasId.fullName
+        ).charAt(0)}
+      </div>
+    )}
+  </div>
+)}
 
                       <span
                         style={{
                           display: "inline-block",
                           padding: "10px 14px",
                           borderRadius: "12px",
-                          background: isMine ? "#5a67ff" : "#eee",
+                          background: isMine ? "#206c44" : "#eee",
                           color: isMine ? "white" : "black",
                           maxWidth: "60%"
                         }}
@@ -393,9 +542,18 @@ function Messages() {
                           })}
 
                           {isMine && (
-                            <span style={{ marginLeft: "6px" }}>
+                            <div
+  style={{
+    display: "inline-block",
+    padding: "10px 14px",
+    borderRadius: "16px",
+    background: isMine ? "#206c44" : "#eee",
+    color: isMine ? "white" : "black",
+    maxWidth: "60%"
+  }}
+>
                               {msg.isRead ? "✓✓" : "✓"}
-                            </span>
+                            </div>
                           )}
 
                         </div>
@@ -403,23 +561,39 @@ function Messages() {
                       </span>
 
                       {isMine && (
-                        <div
-                          style={{
-                            width: "30px",
-                            height: "30px",
-                            borderRadius: "50%",
-                            background: "#5a67ff",
-                            color: "white",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "12px",
-                            fontWeight: "bold"
-                          }}
-                        >
-                          {user.fullName.charAt(0)}
-                        </div>
-                      )}
+  <div style={{
+    width: "30px",
+    height: "30px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    background: "#206c44"
+  }}>
+    {user.avatar ? (
+      <img
+        src={user.avatar}
+        alt="avatar"
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover"
+        }}
+      />
+    ) : (
+      <div style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "white",
+        fontSize: "12px",
+        fontWeight: "bold"
+      }}>
+        {user.fullName.charAt(0)}
+      </div>
+    )}
+  </div>
+)}
 
                     </div>
 
@@ -435,45 +609,75 @@ function Messages() {
 
               {/* ================= INPUT ================= */}
 
-              <div
-                style={{
-                  padding: "15px",
-                  borderTop: "1px solid #eee",
-                  display: "flex",
-                  gap: "10px"
-                }}
-              >
+              {/* ================= INPUT ================= */}
 
-                <input
-                  style={{
-                    flex: 1,
-                    padding: "10px",
-                    border: "1px solid #ddd",
-                    borderRadius: "6px"
-                  }}
-                  placeholder="Type message..."
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") sendMessage();
-                  }}
-                />
+<div style={{
+  padding: "12px",
+  borderTop: "1px solid #eee",
+  display: "flex",
+  gap: "10px",
+  alignItems: "center",
+  position: "relative"
+}}>
 
-                <button
-                  onClick={sendMessage}
-                  style={{
-                    padding: "10px 16px",
-                    background: "#5a67ff",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer"
-                  }}
-                >
-                  Send
-                </button>
+  {/* EMOJI BUTTON */}
+  <button
+    onClick={() => setShowEmoji(prev => !prev)}
+    style={{
+      fontSize: "20px",
+      background: "none",
+      border: "none",
+      cursor: "pointer"
+    }}
+  >
+    😊
+  </button>
 
-              </div>
+  {/* EMOJI PICKER */}
+  {showEmoji && (
+    <div style={{
+      position: "absolute",
+      bottom: "60px",
+      left: "10px",
+      zIndex: 10
+    }}>
+      <EmojiPicker onEmojiClick={onEmojiClick} />
+    </div>
+  )}
+
+  {/* INPUT */}
+  <input
+    style={{
+      flex: 1,
+      padding: "12px",
+      border: "1px solid #ddd",
+      borderRadius: "20px",
+      outline: "none"
+    }}
+    placeholder="Type message..."
+    value={text}
+    onChange={(e) => setText(e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter") sendMessage();
+    }}
+  />
+
+  {/* SEND BUTTON */}
+  <button
+    onClick={sendMessage}
+    style={{
+      padding: "10px 18px",
+      background: "#206c44",
+      color: "white",
+      border: "none",
+      borderRadius: "20px",
+      cursor: "pointer"
+    }}
+  >
+    Send
+  </button>
+
+</div>
 
             </>
 

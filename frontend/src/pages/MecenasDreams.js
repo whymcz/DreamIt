@@ -1,15 +1,56 @@
+
+
+
 import { useEffect, useState } from "react";
 import "../index.css";
 import { useNavigate } from "react-router-dom";
 
+/* ===== KAZAKHSTAN CITIES LIST ===== */
+const kzCities = [
+  "Almaty","Astana","Shymkent",
+  "Aktau, Mangystau Region","Aktobe, Aktobe Region","Aksay, West Kazakhstan Region",
+  "Alga, Aktobe Region","Aral, Kyzylorda Region","Arkalyk, Kostanay Region",
+  "Arys, Turkistan Region","Atbasar, Akmola Region","Atyrau, Atyrau Region",
+  "Baikonur, Kyzylorda Region","Balkhash, Karaganda Region",
+  "Bulayevo, North Kazakhstan Region","Derzhavinsk, Akmola Region",
+  "Ekibastuz, Pavlodar Region","Esik, Almaty Region",
+  "Zhanaozen, Mangystau Region","Zhanatas, Zhambyl Region",
+  "Zhezkazgan, Ulytau Region","Zhetiqara, Kostanay Region",
+  "Kapchagay, Almaty Region","Karaganda, Karaganda Region",
+  "Kaskelen, Almaty Region","Kentau, Turkistan Region",
+  "Kokshetau, Akmola Region","Kostanay, Kostanay Region",
+  "Kulsary, Atyrau Region","Kurchatov, Abai Region",
+  "Kyzylorda, Kyzylorda Region","Lisakovsk, Kostanay Region",
+  "Makinsk, Akmola Region","Pavlodar, Pavlodar Region",
+  "Petropavl, North Kazakhstan Region","Ridder, East Kazakhstan Region",
+  "Rudny, Kostanay Region","Saran, Karaganda Region",
+  "Sarkand, Zhetysu Region","Satpayev, Ulytau Region",
+  "Semey, Abai Region","Sergeyevka, North Kazakhstan Region",
+  "Shalqar, Aktobe Region","Shardarа, Turkistan Region",
+  "Shu, Zhambyl Region","Stepnogorsk, Akmola Region",
+  "Stepnyak, Akmola Region","Taldykorgan, Zhetysu Region",
+  "Taraz, Zhambyl Region","Tekeli, Zhetysu Region",
+  "Temirtau, Karaganda Region","Tobol, Kostanay Region",
+  "Turkistan, Turkistan Region","Ust-Kamenogorsk, East Kazakhstan Region",
+  "Uralsk, West Kazakhstan Region","Usharal, Alakol District",
+  "Zaisan, East Kazakhstan Region"
+];
+
 function MecenasDreams() {
 
   const [dreams, setDreams] = useState([]);
+  const [cityQuery, setCityQuery] = useState("");
+  const [filteredCities, setFilteredCities] = useState([]);
+  const [gender, setGender] = useState("");
+  const [minAge, setMinAge] = useState("");
+  const [maxAge, setMaxAge] = useState("");
   const [selectedDream, setSelectedDream] = useState(null);
   const [sendingRequest, setSendingRequest] = useState(false);
   const [confirmModal, setConfirmModal] = useState(false);
 
   const navigate = useNavigate();
+
+  
 
   /* ================= FETCH DREAMS ================= */
 
@@ -18,9 +59,14 @@ function MecenasDreams() {
 
     const user = JSON.parse(localStorage.getItem("user"));
 
-    const response = await fetch(
-      `http://localhost:5000/dreams/approved?mecenasId=${user._id}`
-    );
+    let url = `http://localhost:5000/dreams/approved?mecenasId=${user._id}`;
+
+    if (cityQuery) url += `&city=${cityQuery}`;
+    if (gender) url += `&gender=${gender}`;
+    if (minAge) url += `&minAge=${minAge}`;
+    if (maxAge) url += `&maxAge=${maxAge}`;
+
+    const response = await fetch(url);
 
     const data = await response.json();
 
@@ -76,6 +122,17 @@ function MecenasDreams() {
     }
   };
 
+  const handleCitySearch = (e) => {
+  const value = e.target.value;
+  setCityQuery(value);
+
+  const filtered = kzCities.filter(city =>
+    city.toLowerCase().includes(value.toLowerCase())
+  );
+
+  setFilteredCities(filtered);
+};
+
   /* ================= UI ================= */
 
   return (
@@ -96,6 +153,94 @@ function MecenasDreams() {
 </button>
 
       <h1 style={titleStyle}>Dream List</h1>
+
+      <div style={{
+  display: "flex",
+  gap: "10px",
+  marginBottom: "20px",
+  flexWrap: "wrap"
+}}>
+
+  <div style={{ position: "relative" }}>
+
+  <input
+    placeholder="Type city..."
+    value={cityQuery}
+    onChange={handleCitySearch}
+    style={filterInput}
+  />
+
+  {filteredCities.length > 0 && (
+    <div style={{
+      position: "absolute",
+      background: "white",
+      border: "1px solid #ddd",
+      width: "100%",
+      maxHeight: "150px",
+      overflowY: "auto",
+      zIndex: 10
+    }}>
+      {filteredCities.map((city, index) => (
+        <div
+          key={index}
+          style={{
+            padding: "8px",
+            cursor: "pointer"
+          }}
+          onClick={() => {
+            setCityQuery(city);
+            setFilteredCities([]);
+          }}
+        >
+          {city}
+        </div>
+      ))}
+    </div>
+  )}
+
+</div>
+
+  <select
+    value={gender}
+    onChange={(e) => setGender(e.target.value)}
+    style={filterInput}
+  >
+    <option value="">Gender</option>
+    <option value="Boy">Male</option>
+    <option value="Girl">Female</option>
+  </select>
+
+  <input
+    type="number"
+    placeholder="Min Age"
+    value={minAge}
+    onChange={(e) => setMinAge(e.target.value)}
+    style={filterInput}
+  />
+
+  <input
+    type="number"
+    placeholder="Max Age"
+    value={maxAge}
+    onChange={(e) => setMaxAge(e.target.value)}
+    style={filterInput}
+  />
+
+  <button
+    onClick={fetchDreams}
+    style={{
+      background: "#5a67ff",
+      color: "white",
+      border: "none",
+      padding: "8px 15px",
+      borderRadius: "6px",
+      cursor: "pointer"
+    }}
+  >
+    Apply
+  </button>
+
+</div>
 
       <p style={subtitleStyle}>
         Choose a dream and make a child happy 
@@ -215,7 +360,7 @@ function MecenasDreams() {
 >
   {selectedDream.userRequested
     ? "Already Requested"
-    : "Make Dream Come True ✨"}
+    : "Make Dream Come True"}
 </button>
 
           </div>
@@ -381,6 +526,12 @@ const confirmButton = {
   color: "white",
   borderRadius: "8px",
   cursor: "pointer"
+};
+
+const filterInput = {
+  padding: "8px",
+  borderRadius: "6px",
+  border: "1px solid #ccc"
 };
 
 export default MecenasDreams;

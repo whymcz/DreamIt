@@ -30,10 +30,17 @@ const MessageSchema = new mongoose.Schema({
     default: false
   },
 
+  file: {
+  type: String,
+  default: ""
+  },
+
   createdAt: {
     type: Date,
     default: Date.now
   }
+
+  
 
 });
 

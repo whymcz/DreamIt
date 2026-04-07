@@ -56,7 +56,21 @@ const UserSchema = new mongoose.Schema(
     avatar: {
       type: String,
       default: ""
+    },
+
+    // ===== SOCIAL MEDIA =====
+    socialLinks: [
+    {
+    platform: {
+      type: String,
+      enum: ["facebook", "instagram", "tiktok", "linkedin"]
+    },
+    url: {
+      type: String
     }
+  }
+]
+
   },
   {
     timestamps: true // 👈 automatically adds createdAt & updatedAt

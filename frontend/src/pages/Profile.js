@@ -5,14 +5,28 @@ import "../index.css";
 
 function Profile() {
 
-  const storedUser = JSON.parse(localStorage.getItem("user"));
+  const [user, setUser] = useState(() => {
+  const stored = localStorage.getItem("user");
+  return stored ? JSON.parse(stored) : null;
+});
 
-  const [user, setUser] = useState(storedUser);
   const [activeTab, setActiveTab] = useState("profile");
 
   const [fullName, setFullName] = useState(user.fullName);
   const [phone, setPhone] = useState(user.phone || "");
   const [avatar, setAvatar] = useState(user.avatar || "");
+
+  const [socialLinks, setSocialLinks] = useState([]);
+
+useEffect(() => {
+  if (user && user.socialLinks) {
+    setSocialLinks(
+      user.socialLinks.length > 0
+        ? user.socialLinks
+        : [{ platform: "", url: "" }]
+    );
+  }
+}, [user]);
 
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -24,25 +38,32 @@ function Profile() {
   const [joyText, setJoyText] = useState("");
   const [joyMedia, setJoyMedia] = useState("");
 
+  const [completedDreams, setCompletedDreams] = useState([]);
+  const [selectedDreamId, setSelectedDreamId] = useState("");
+
   const navigate = useNavigate();
 
   /* ================= FETCH DREAMS ================= */
 
   useEffect(() => {
 
-    if (activeTab === "requests") {
+  if (activeTab === "requests") {
 
-      if (user.role === "parent") {
-        fetchDreams();
-      }
-
-      if (user.role === "mecenas") {
-        fetchMyRequests();
-      }
-
+    if (user.role === "parent") {
+      fetchDreams();
     }
 
-  }, [activeTab]);
+    if (user.role === "mecenas") {
+      fetchMyRequests();
+    }
+
+  }
+
+  if (activeTab === "joypost" && user.role === "mecenas") {
+    fetchCompletedDreams();
+  }
+
+}, [activeTab]);
 
   const fetchDreams = async () => {
     try {
@@ -58,6 +79,22 @@ function Profile() {
     } catch (error) {
       console.log(error);
     }
+  };
+
+  const fetchCompletedDreams = async () => {
+  try {
+
+    const res = await fetch(
+      `http://localhost:5000/mecenas/completed-dreams/${user._id}`
+    );
+
+    const data = await res.json();
+
+    setCompletedDreams(data);
+
+  } catch (error) {
+    console.log("Failed to fetch completed dreams", error);
+  }
   };
 
   const fetchMyRequests = async () => {
@@ -142,6 +179,36 @@ function Profile() {
 
   };
 
+
+  const handleSaveSocial = async () => {
+  try {
+
+    const response = await fetch("http://localhost:5000/update-profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user._id,
+        socialLinks
+      })
+    });
+
+    const updatedUser = await response.json();
+
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    setUser(updatedUser);
+setSocialLinks(updatedUser.socialLinks && updatedUser.socialLinks.length > 0
+  ? updatedUser.socialLinks
+  : [{ platform: "", url: "" }]
+);
+
+    alert("Social links saved!");
+
+  } catch (error) {
+    alert("Failed to save social links");
+  }
+};
+
+
   /* ================= CHANGE PASSWORD ================= */
 
   const handleChangePassword = async () => {
@@ -184,6 +251,11 @@ function Profile() {
 
   const generateWithAI = async () => {
 
+  if (!selectedDreamId) {
+    alert("Please select a dream first");
+    return;
+  }
+
   try {
 
     const res = await fetch("http://localhost:5000/generate-joy-text", {
@@ -192,7 +264,7 @@ function Profile() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        prompt: joyText   // optional input
+        dreamId: selectedDreamId // NEW
       })
     });
 
@@ -210,6 +282,12 @@ function Profile() {
 
 const submitJoyPost = async () => {
 
+
+  if (!selectedDreamId) {
+    alert("Please select a dream");
+    return;
+  }
+
   if (!joyText) {
     alert("Please write the story");
     return;
@@ -223,11 +301,12 @@ const submitJoyPost = async () => {
       headers: { "Content-Type": "application/json" },
 
       body: JSON.stringify({
-  mecenasId: user._id,
-  mecenasName: user.fullName,
-  avatar: user.avatar,
-  text: joyText,
-  media: joyMedia
+        dreamId: selectedDreamId,
+        mecenasId: user._id,
+        mecenasName: user.fullName,
+        avatar: user.avatar,
+        text: joyText,
+        media: joyMedia
 })
 
     });
@@ -243,6 +322,32 @@ const submitJoyPost = async () => {
 
   }
 
+};
+
+
+const confirmDream = async (dreamId) => {
+  try {
+    const res = await fetch(
+      `http://localhost:5000/dreams/${dreamId}/confirm`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user._id
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    alert(data.message);
+
+    //  refresh dreams after confirmation
+    fetchDreams();
+
+  } catch (error) {
+    console.log("Confirm error:", error);
+  }
 };
 
 
@@ -304,6 +409,15 @@ const submitJoyPost = async () => {
         >
           Password
         </div>
+
+        {user.role === "mecenas" && (
+  <div
+    className={`sidebar-item ${activeTab === "social" ? "active" : ""}`}
+    onClick={() => setActiveTab("social")}
+  >
+    Social Media
+  </div>
+)}
 
         <div
           className={`sidebar-item ${activeTab === "requests" ? "active" : ""}`}
@@ -470,6 +584,118 @@ const submitJoyPost = async () => {
 
         )}
 
+
+{/* SOCIAL MEDIA TAB */}
+{activeTab === "social" && user.role === "mecenas" && (
+
+  <div className="profile-form">
+
+    <h2>Social Media</h2>
+
+    <p style={{ color: "#777", marginBottom: "15px" }}>
+      Add your social profiles (min 1 required to request a dream)
+    </p>
+
+    {socialLinks.map((link, index) => (
+
+  <div key={index} style={{ marginBottom: "15px", display: "flex", gap: "10px" }}>
+
+    <div style={{ flex: 1 }}>
+      <select
+        value={link.platform}
+        onChange={(e) => {
+          const updated = [...socialLinks];
+          updated[index].platform = e.target.value;
+          setSocialLinks(updated);
+        }}
+        className="profile-input"
+      >
+        <option value="">Select platform</option>
+        <option value="facebook">Facebook</option>
+        <option value="instagram">Instagram</option>
+        <option value="tiktok">TikTok</option>
+        <option value="linkedin">LinkedIn</option>
+      </select>
+
+      <input
+        type="text"
+        placeholder="Enter link..."
+        value={link.url}
+        onChange={(e) => {
+          const updated = [...socialLinks];
+          updated[index].url = e.target.value;
+          setSocialLinks(updated);
+        }}
+        className="profile-input"
+        style={{ marginTop: "5px" }}
+      />
+    </div>
+
+    {/* DELETE BUTTON */}
+    {socialLinks.length > 1 && (
+      <button
+        onClick={() => {
+          const updated = socialLinks.filter((_, i) => i !== index);
+          setSocialLinks(updated);
+        }}
+        style={{
+          background: "#ff4d4f",
+          color: "white",
+          border: "none",
+          borderRadius: "8px",
+          padding: "8px 10px",
+          cursor: "pointer",
+          height: "40px",
+          alignSelf: "center"
+        }}
+      >
+        ✕
+      </button>
+    )}
+
+  </div>
+
+))}
+
+    {/* ADD BUTTON */}
+    {socialLinks.length < 4 && (
+      <button
+  onClick={() =>
+    setSocialLinks(prev => [...prev, { platform: "", url: "" }].slice(0, 4))
+  }
+  style={{
+    padding: "10px 16px",
+    borderRadius: "8px",
+    border: "none",
+    background: "#e0e7ff",
+    color: "#3730a3",
+    cursor: "pointer",
+    marginRight: "10px"
+  }}
+>
+  + Add
+</button>
+    )}
+
+    {/* SAVE */}
+    <button
+  onClick={handleSaveSocial}
+  style={{
+    padding: "10px 16px",
+    borderRadius: "8px",
+    border: "none",
+    background: "#5a67ff",
+    color: "white",
+    cursor: "pointer"
+  }}
+>
+  Save
+</button>
+
+  </div>
+
+)}
+
         {/* PARENT SUBMISSIONS */}
 
         {activeTab === "requests" && user.role === "parent" && (
@@ -510,29 +736,45 @@ const submitJoyPost = async () => {
 
                       <td>
 
-                        <button
-                          onClick={() => setSelectedDream(dream)}
-                          style={viewBtn}
-                        >
-                          View
-                        </button>
+  <button
+    onClick={() => setSelectedDream(dream)}
+    style={viewBtn}
+  >
+    View
+  </button>
 
-                        {dream.status === "denied" && (
+  {dream.status === "denied" && (
+    <button
+      onClick={() =>
+        navigate("/submit-dream", {
+          state: { editDream: dream }
+        })
+      }
+      style={editBtn}
+    >
+      Edit
+    </button>
+  )}
 
-                          <button
-                            onClick={() =>
-                              navigate("/submit-dream", {
-                                state: { editDream: dream }
-                              })
-                            }
-                            style={editBtn}
-                          >
-                            Edit
-                          </button>
+  {/*  NEW BUTTON */}
+  {dream.status === "confirmed" && (
+    <button
+      onClick={() => confirmDream(dream._id)}
+      style={{
+        background: "green",
+        color: "white",
+        border: "none",
+        padding: "5px 10px",
+        borderRadius: "4px",
+        cursor: "pointer",
+        marginLeft: "5px"
+      }}
+    >
+      Confirm
+    </button>
+  )}
 
-                        )}
-
-                      </td>
+</td>
 
                     </tr>
 
@@ -626,6 +868,46 @@ const submitJoyPost = async () => {
     Share a fulfilled dream moment with the community.
   </p>
 
+
+  {/* DREAM SELECT */}
+
+<div style={{
+  background: "#fff",
+  padding: "20px",
+  borderRadius: "12px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+  marginBottom: "20px"
+}}>
+
+  <label style={{ fontWeight: "bold" }}>Select Dream</label>
+
+  <select
+    value={selectedDreamId}
+    onChange={(e) => setSelectedDreamId(e.target.value)}
+    style={{
+      width: "100%",
+      marginTop: "10px",
+      padding: "10px",
+      borderRadius: "8px",
+      border: "1px solid #ddd"
+    }}
+  >
+    <option value="">-- Select fulfilled dream --</option>
+
+    {completedDreams.map((dream) => (
+      <option key={dream._id} value={dream._id}>
+        {dream.childName} - {dream.title}
+      </option>
+    ))}
+
+  </select>
+
+</div>
+
+
+
+
+
   {/* IMAGE CARD */}
   <div style={{
     background: "#fff",
@@ -677,7 +959,7 @@ const submitJoyPost = async () => {
   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
   marginBottom: "20px",
   display: "flex",
-  flexDirection: "column"   // ⭐ IMPORTANT
+  flexDirection: "column"   //  IMPORTANT
 }}>
     <label style={{ fontWeight: "bold" }}>Story</label>
 
@@ -696,21 +978,22 @@ const submitJoyPost = async () => {
     minHeight: "120px",
     outline: "none",
     lineHeight: "1.5",
-    boxSizing: "border-box"   // ⭐ THIS IS THE FIX
+    boxSizing: "border-box"   //  THIS IS THE FIX
   }}
 />
 
     {/* AI BUTTON (we'll make it work next) */}
     <button
   onClick={generateWithAI}
+  disabled={!selectedDreamId}
   style={{
     marginTop: "10px",
-    background: "#5a67ff",
+    background: selectedDreamId ? "#5a67ff" : "#ccc",
     color: "white",
     border: "none",
     padding: "8px 12px",
     borderRadius: "8px",
-    cursor: "pointer"
+    cursor: selectedDreamId ? "pointer" : "not-allowed"
   }}
 >
   Generate with AI

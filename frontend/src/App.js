@@ -16,6 +16,7 @@ import AdminMecenasRequests from "./pages/AdminMecenasRequests";
 import JoyWall from "./pages/JoyWall";
 import CreateJoyPost from "./pages/CreateJoyPost";
 import AdminJoyPosts from "./pages/AdminJoyPosts";
+import MecenasProfile from "./pages/MecenasProfile";
 
 
 /* DREAM MARKETPLACE */
@@ -40,7 +41,7 @@ function App() {
         {/* ================= HOME ================= */}
         <Route path="/" element={<Home />} />
 
-
+        <Route path="/mecenas/:id" element={<MecenasProfile />} />
         <Route path="/joy" element={<JoyWall />} />
         <Route path="/joy/create" element={<CreateJoyPost />} />
         <Route path="/admin/joy-posts" element={<AdminJoyPosts />} />
