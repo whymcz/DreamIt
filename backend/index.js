@@ -1569,6 +1569,83 @@ Do not use third person. Do not say "the mecenas". Speak as "I". Use simple huma
 });
 
 
+/* ================= AI DREAM FULFILLMENT ASSISTANT ================= */
+
+app.post("/dreams/:id/ai-help", async (req, res) => {
+  try {
+
+    const dream = await Dream.findById(req.params.id);
+
+    if (!dream) {
+      return res.status(404).json({ message: "Dream not found" });
+    }
+
+    //  if already generated → return saved
+    if (dream.aiSuggestion && dream.aiSuggestion.trim() !== "") {
+      return res.json({ text: dream.aiSuggestion });
+    }
+
+    //  SMART UNIVERSAL PROMPT
+    const prompt = `
+You are an AI assistant helping a sponsor (mecenas) fulfill a child's dream in real life.
+
+Dream details:
+- Title: ${dream.title}
+- Description: ${dream.description}
+- Child age: ${dream.age}
+- City: ${dream.city}
+
+Your task:
+Create a clear, practical step-by-step plan to fulfill this dream.
+
+Requirements:
+- Be VERY practical and realistic
+- Suggest specific places (shops, services, events)
+- Use the city when possible
+- Include approximate prices if relevant
+- Include alternatives if the main idea is difficult
+- If it's an experience (concert, meeting someone, etc.), suggest how to find events
+- If it's an object (toy, guitar, etc.), suggest where to buy it
+
+Structure:
+1. What to do (steps)
+2. Where to go (shops / places / ideas)
+3. Estimated cost (if possible)
+4. Alternative options
+
+Keep it simple, helpful, and actionable.
+`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You help people fulfill children's dreams in real life."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      max_tokens: 400
+    });
+
+    const text = response.choices[0].message.content;
+
+    //  SAVE RESULT
+    dream.aiSuggestion = text;
+    await dream.save();
+
+    res.json({ text });
+
+  } catch (error) {
+    console.log("AI Dream error:", error);
+    res.status(500).json({ message: "AI failed" });
+  }
+});
+
+
 /* ================= MECENAS PROFILE ================= */
 
 app.get("/joy/mecenas/:id", async (req, res) => {

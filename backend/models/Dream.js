@@ -68,6 +68,11 @@ const DreamSchema = new mongoose.Schema({
     default: null
   },
 
+  aiSuggestion: {
+  type: String,
+  default: ""
+},
+
   createdAt: {
     type: Date,
     default: Date.now

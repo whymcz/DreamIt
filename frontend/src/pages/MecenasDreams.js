@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import "../index.css";
 import { useNavigate } from "react-router-dom";
 
+
 /* ===== KAZAKHSTAN CITIES LIST ===== */
 const kzCities = [
   "Almaty","Astana","Shymkent",
@@ -48,6 +49,10 @@ function MecenasDreams() {
   const [sendingRequest, setSendingRequest] = useState(false);
   const [confirmModal, setConfirmModal] = useState(false);
 
+  const [aiText, setAiText] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [loadingAI, setLoadingAI] = useState(false);
+
   const navigate = useNavigate();
 
   
@@ -80,6 +85,28 @@ function MecenasDreams() {
   useEffect(() => {
     fetchDreams();
   }, []);
+
+
+  const handleAIHelp = async (dreamId) => {
+  try {
+    setLoadingAI(true);
+
+    const res = await fetch(`http://localhost:5000/dreams/${dreamId}/ai-help`, {
+      method: "POST"
+    });
+
+    const data = await res.json();
+
+    setAiText(data.text);
+    setShowModal(true);
+
+  } catch (err) {
+    console.log(err);
+  } finally {
+    setLoadingAI(false);
+  }
+};
+
 
   /* ================= SEND REQUEST ================= */
 
@@ -291,6 +318,21 @@ function MecenasDreams() {
               View Dream
             </button>
 
+            <button
+  onClick={() => handleAIHelp(dream._id)}
+  style={{
+    marginLeft: "10px",
+    background: "#5a67ff",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    padding: "10px 14px",
+    cursor: "pointer"
+  }}
+>
+  Fulfillment Plan AI
+</button>
+
           </div>
         ))}
 
@@ -405,6 +447,50 @@ function MecenasDreams() {
 
         </div>
       )}
+
+      {showModal && (
+  <div
+    onClick={() => setShowModal(false)}
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 9999
+    }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        background: "white",
+        padding: "20px",
+        borderRadius: "12px",
+        width: "500px",
+        maxHeight: "80%",
+        overflowY: "auto"
+      }}
+    >
+      <h3>AI Fulfillment Plan</h3>
+
+      {loadingAI ? (
+        <p>Generating...</p>
+      ) : (
+        <p style={{ whiteSpace: "pre-line" }}>
+          {aiText}
+        </p>
+      )}
+
+      <button onClick={() => setShowModal(false)}>
+        Close
+      </button>
+    </div>
+  </div>
+)}
 
     </div>
   );
@@ -533,5 +619,8 @@ const filterInput = {
   borderRadius: "6px",
   border: "1px solid #ccc"
 };
+
+
+
 
 export default MecenasDreams;

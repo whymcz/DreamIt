@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import EmojiPicker from "emoji-picker-react";
+import { FaPaperclip, FaSmile } from "react-icons/fa";
+import { BsEmojiSmile } from "react-icons/bs";
 
 function Messages() {
 
@@ -17,6 +19,8 @@ function Messages() {
   const [text, setText] = useState("");
   const [file, setFile] = useState(null);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
 
 
   const messagesEndRef = useRef(null);
@@ -30,11 +34,14 @@ function Messages() {
     socketRef.current = io("http://localhost:5000");
 
     socketRef.current.on("receive_message", (data) => {
+  setMessages(prev => {
+    const exists = prev.some(msg => msg._id === data._id);
+    if (exists) return prev;
+    return [...prev, data];
+  });
 
-      setMessages(prev => [...prev, data]);
-      setTimeout(scrollToBottom, 50);
-
-    });
+  setTimeout(scrollToBottom, 50);
+});
 
     return () => {
       socketRef.current.disconnect();
@@ -64,8 +71,15 @@ function Messages() {
   const reader = new FileReader();
 
   reader.onloadend = () => {
-    setFile(reader.result); // base64
-  };
+  const base64 = reader.result;
+
+  if (!base64.startsWith("data:")) {
+    const fixed = `data:${selected.type};base64,${base64}`;
+    setFile(fixed);
+  } else {
+    setFile(base64);
+  }
+};
 
   reader.readAsDataURL(selected);
 };
@@ -170,7 +184,7 @@ function Messages() {
 
   const sendMessage = async () => {
 
-    if (!text.trim() || !selectedDream) return;
+    if ((!text.trim() && !file) || !selectedDream) return;
 
     const receiverId =
       user._id === selectedDream.parentId._id
@@ -206,6 +220,7 @@ function Messages() {
       }
 
       setText("");
+      setFile(null);
 
       scrollToBottom();
 
@@ -441,12 +456,17 @@ function Messages() {
               {/* ================= MESSAGES ================= */}
 
               <div
-                style={{
-                  flex: 1,
-                  padding: "20px",
-                  overflowY: "auto"
-                }}
-              >
+  style={{
+    flex: 1,
+    padding: "20px",
+    overflowY: "auto",
+
+    backgroundImage: "url('/chat-bg.jpg')",
+    backgroundRepeat: "repeat",
+    backgroundSize: "300px",
+    backgroundColor: "#f5f6fa"
+  }}
+>
 
                 {messages.map((msg) => {
 
@@ -526,7 +546,39 @@ function Messages() {
                         }}
                       >
 
-                        {msg.text}
+                        {/* TEXT */}
+{msg.text && <div>{msg.text}</div>}
+
+{/* IMAGE */}
+{msg.file && (
+  msg.file.startsWith("data:image") ? (
+    <img
+      src={msg.file}
+      alt="file"
+      onClick={() => setSelectedImage(msg.file)}
+      style={{
+        marginTop: "6px",
+        maxWidth: "200px",
+        borderRadius: "10px",
+        cursor: "pointer"
+      }}
+    />
+  ) : (
+    <div
+      onClick={() => setSelectedFile(msg.file)}
+      style={{
+        marginTop: "6px",
+        padding: "8px 12px",
+        background: "#206c44",
+        borderRadius: "8px",
+        cursor: "pointer",
+        fontSize: "14px"
+      }}
+    >
+      Open file
+    </div>
+  )
+)}
 
                         <div
                           style={{
@@ -609,6 +661,9 @@ function Messages() {
 
               {/* ================= INPUT ================= */}
 
+
+              
+
               {/* ================= INPUT ================= */}
 
 <div style={{
@@ -620,6 +675,31 @@ function Messages() {
   position: "relative"
 }}>
 
+  {file && (
+  <div style={{
+    position: "absolute",
+    bottom: "60px",
+    left: "10px",
+    background: "white",
+    padding: "6px",
+    borderRadius: "10px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+  }}>
+    <img
+      src={file}
+      alt="preview"
+      style={{
+        width: "80px",
+        height: "80px",
+        objectFit: "cover",
+        borderRadius: "8px"
+      }}
+    />
+  </div>
+)}
+
+
+
   {/* EMOJI BUTTON */}
   <button
     onClick={() => setShowEmoji(prev => !prev)}
@@ -630,7 +710,10 @@ function Messages() {
       cursor: "pointer"
     }}
   >
-    😊
+    <BsEmojiSmile
+  size={20}
+  style={{ cursor: "pointer", color: "#555" }}
+/>
   </button>
 
   {/* EMOJI PICKER */}
@@ -663,19 +746,40 @@ function Messages() {
   />
 
   {/* SEND BUTTON */}
-  <button
-    onClick={sendMessage}
-    style={{
-      padding: "10px 18px",
-      background: "#206c44",
-      color: "white",
-      border: "none",
-      borderRadius: "20px",
-      cursor: "pointer"
-    }}
-  >
-    Send
-  </button>
+  {/* FILE INPUT (HIDDEN) */}
+<input
+  type="file"
+  id="fileInput"
+  style={{ display: "none" }}
+  onChange={handleFileChange}
+/>
+
+{/* FILE BUTTON */}
+<button
+  onClick={() => document.getElementById("fileInput").click()}
+  style={{
+    fontSize: "18px",
+    background: "none",
+    border: "none",
+    cursor: "pointer"
+  }}
+>
+  <FaPaperclip size={18} />
+</button>
+
+<button
+  onClick={sendMessage}
+  style={{
+    padding: "10px 18px",
+    background: "#206c44",
+    color: "white",
+    border: "none",
+    borderRadius: "20px",
+    cursor: "pointer"
+  }}
+>
+  Send
+</button>
 
 </div>
 
@@ -686,6 +790,89 @@ function Messages() {
         </div>
 
       </div>
+
+      {/* FULLSCREEN IMAGE */}
+{selectedImage && (
+  <div
+    onClick={() => setSelectedImage(null)}
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      background: "rgba(0,0,0,0.8)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 9999,
+      cursor: "pointer"
+    }}
+  >
+    <img
+      src={selectedImage}
+      alt="full"
+      style={{
+        maxWidth: "90%",
+        maxHeight: "90%",
+        borderRadius: "12px"
+      }}
+    />
+  </div>
+)}
+
+
+
+{/* FILE VIEWER */}
+{selectedFile && (
+  <div
+    onClick={() => setSelectedFile(null)}
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      background: "rgba(0,0,0,0.8)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 9999
+    }}
+  >
+    {selectedFile.startsWith("data:application/pdf") ? (
+      <iframe
+        src={selectedFile}
+        title="file"
+        style={{
+          width: "90%",
+          height: "90%",
+          border: "none",
+          borderRadius: "10px"
+        }}
+      />
+    ) : (
+      <a
+        href={selectedFile}
+        download="file"
+        style={{
+          background: "white",
+          padding: "20px",
+          borderRadius: "10px",
+          textDecoration: "none",
+          color: "black"
+        }}
+      >
+        Download file
+      </a>
+    )}
+  </div>
+)}
+
+
+
+
+
 
     </>
   );
