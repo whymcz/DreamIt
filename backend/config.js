@@ -1,5 +1,5 @@
 const config = {
-  openaiKey: "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"
+  openaiKey: "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"
 };
 
 module.exports = config;
