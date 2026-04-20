@@ -17,6 +17,7 @@ import JoyWall from "./pages/JoyWall";
 import CreateJoyPost from "./pages/CreateJoyPost";
 import AdminJoyPosts from "./pages/AdminJoyPosts";
 import MecenasProfile from "./pages/MecenasProfile";
+import Verify from "./pages/Verify";
 
 
 /* DREAM MARKETPLACE */
@@ -49,6 +50,8 @@ function App() {
         {/* ================= AUTH ================= */}
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+
+        <Route path="/verify/:token" element={<Verify />} />
 
         {/* ================= ADMIN ROUTES ================= */}
 
