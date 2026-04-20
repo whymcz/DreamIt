@@ -14,6 +14,7 @@ import whatsappIcon from "../assets/whatsapp-icon.png";
 
 import bellIcon from "../assets/icons/bell.png";
 import chatIcon from "../assets/icons/chat.png";
+import API_URL from "../config/api";
 
 function Home() {
 const user = JSON.parse(localStorage.getItem("user"));

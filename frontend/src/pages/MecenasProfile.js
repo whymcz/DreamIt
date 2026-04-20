@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { FaHeart, FaStar, FaInstagram, FaFacebook, FaTiktok, FaLinkedin } from "react-icons/fa";
+import API_URL from "../config/api";
 
 function MecenasProfile() {
 
