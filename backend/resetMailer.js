@@ -5,14 +5,14 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
-}
+  }
 });
 
 const sendResetEmail = async (to, token) => {
   const link = `${process.env.CLIENT_URL}/reset-password/${token}`;
 
   await transporter.sendMail({
-    from: '"DreamIt Support" dreamit.comfirm@gmail.com',
+    from: process.env.EMAIL_USER, 
     to,
     subject: "Reset your DreamIt password",
     html: `
