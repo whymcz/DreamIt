@@ -3,13 +3,13 @@ const nodemailer = require("nodemailer");
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "dreamit.confirm@gmail.com",
-    pass: "kpve vqir nrru djsn"
-  }
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+}
 });
 
 const sendVerificationEmail = async (to, token) => {
-  const link = `http://localhost:5000/verify/${token}`;
+  const link = `${process.env.CLIENT_URL}/verify/${token}`;
 
   await transporter.sendMail({
     from: '"DreamIt" <YOUR_EMAIL@gmail.com>',

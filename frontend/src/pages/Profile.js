@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../index.css";
+import API_URL from "../config/api";
 
 
 function Profile() {
@@ -69,7 +70,7 @@ useEffect(() => {
     try {
 
       const res = await fetch(
-        `http://localhost:5000/parent/my-dreams/${user._id}`
+        `${API_URL}/parent/my-dreams/${user._id}`
       );
 
       const data = await res.json();
@@ -85,7 +86,7 @@ useEffect(() => {
   try {
 
     const res = await fetch(
-      `http://localhost:5000/mecenas/completed-dreams/${user._id}`
+      `${API_URL}/mecenas/completed-dreams/${user._id}`
     );
 
     const data = await res.json();
@@ -102,7 +103,7 @@ useEffect(() => {
     try {
 
       const res = await fetch(
-        `http://localhost:5000/mecenas/my-requests/${user._id}`
+        `${API_URL}/mecenas/my-requests/${user._id}`
       );
 
       const data = await res.json();
@@ -149,7 +150,7 @@ useEffect(() => {
 
     try {
 
-      const response = await fetch("http://localhost:5000/update-profile", {
+      const response = await fetch(`${API_URL}/update-profile`, {
 
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -183,7 +184,7 @@ useEffect(() => {
   const handleSaveSocial = async () => {
   try {
 
-    const response = await fetch("http://localhost:5000/update-profile", {
+    const response = await fetch(`${API_URL}/update-profile`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -220,7 +221,7 @@ setSocialLinks(updatedUser.socialLinks && updatedUser.socialLinks.length > 0
 
     try {
 
-      const res = await fetch("http://localhost:5000/change-password", {
+      const res = await fetch(`${API_URL}/change-password`, {
 
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -258,7 +259,7 @@ setSocialLinks(updatedUser.socialLinks && updatedUser.socialLinks.length > 0
 
   try {
 
-    const res = await fetch("http://localhost:5000/generate-joy-text", {
+    const res = await fetch(`${API_URL}/generate-joy-text`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -295,7 +296,7 @@ const submitJoyPost = async () => {
 
   try {
 
-    await fetch("http://localhost:5000/joy", {
+    await fetch(`${API_URL}/joy`, {
 
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -328,7 +329,7 @@ const submitJoyPost = async () => {
 const confirmDream = async (dreamId) => {
   try {
     const res = await fetch(
-      `http://localhost:5000/dreams/${dreamId}/confirm`,
+      `${API_URL}/dreams/${dreamId}/confirm`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

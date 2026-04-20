@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import AdminLayout from "../components/AdminLayout";
+import API_URL from "../config/api";
 
 function AdminJoyPosts() {
 
@@ -13,7 +14,7 @@ function AdminJoyPosts() {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/admin/joy-posts",
+        `${API_URL}/admin/joy-posts`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -38,7 +39,7 @@ function AdminJoyPosts() {
       const token = localStorage.getItem("token");
 
       await axios.patch(
-        `http://localhost:5000/admin/joy-post/${id}`,
+        `${API_URL}/admin/joy-post/${id}`,
         { action },
         { headers: { Authorization: `Bearer ${token}` } }
       );

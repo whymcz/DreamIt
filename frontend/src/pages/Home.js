@@ -24,7 +24,7 @@ const user = JSON.parse(localStorage.getItem("user"));
   try {
 
     const res = await fetch(
-      `http://localhost:5000/messages/unread/${user._id}`
+      `${API_URL}/messages/unread/${user._id}`
     );
 
     const data = await res.json();
@@ -69,7 +69,7 @@ const user = JSON.parse(localStorage.getItem("user"));
     try {
 
       const res = await fetch(
-        `http://localhost:5000/notifications/${user._id}`
+        `${API_URL}/notifications/${user._id}`
       );
 
       const data = await res.json();
@@ -98,7 +98,7 @@ const user = JSON.parse(localStorage.getItem("user"));
     try {
 
       await fetch(
-        `http://localhost:5000/notifications/${notification._id}/read`,
+        `${API_URL}/notifications/${notification._id}/read`,
         { method: "PATCH" }
       );
 

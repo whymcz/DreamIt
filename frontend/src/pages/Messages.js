@@ -4,6 +4,7 @@ import { io } from "socket.io-client";
 import EmojiPicker from "emoji-picker-react";
 import { FaPaperclip, FaSmile } from "react-icons/fa";
 import { BsEmojiSmile } from "react-icons/bs";
+import API_URL from "../config/api";
 
 function Messages() {
 
@@ -31,7 +32,7 @@ function Messages() {
 
   useEffect(() => {
 
-    socketRef.current = io("http://localhost:5000");
+    socketRef.current = io(`${API_URL}`);
 
     socketRef.current.on("receive_message", (data) => {
   setMessages(prev => {
@@ -94,7 +95,7 @@ function Messages() {
       try {
 
         const res = await fetch(
-          `http://localhost:5000/messages/conversations/${user._id}`
+          `${API_URL}/messages/conversations/${user._id}`
         );
 
         const data = await res.json();
@@ -131,7 +132,7 @@ function Messages() {
     try {
 
       const res = await fetch(
-        `http://localhost:5000/messages/${dream._id}`
+        `${API_URL}/messages/${dream._id}`
       );
 
       const data = await res.json();
@@ -159,7 +160,7 @@ function Messages() {
       try {
 
         const res = await fetch(
-          `http://localhost:5000/messages/${selectedDream._id}`
+          `${API_URL}/messages/${selectedDream._id}`
         );
 
         const data = await res.json();
@@ -194,7 +195,7 @@ function Messages() {
     try {
 
       const res = await fetch(
-        "http://localhost:5000/messages",
+        `${API_URL}/messages`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

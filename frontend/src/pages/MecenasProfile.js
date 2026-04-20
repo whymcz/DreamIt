@@ -17,7 +17,7 @@ function MecenasProfile() {
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/joy/mecenas/${id}`);
+      const res = await fetch(`${API_URL}/joy/mecenas/${id}`);
       const data = await res.json();
 
       setPosts(data.posts);
@@ -37,7 +37,7 @@ function MecenasProfile() {
 
   const handleLike = async (postId) => {
     try {
-      await fetch(`http://localhost:5000/joy/${postId}/like`, {
+      await fetch(`${API_URL}/joy/${postId}/like`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -60,7 +60,7 @@ function MecenasProfile() {
     if (!text.trim()) return;
 
     try {
-      await fetch(`http://localhost:5000/joy/${postId}/comment`, {
+      await fetch(`${API_URL}/joy/${postId}/comment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

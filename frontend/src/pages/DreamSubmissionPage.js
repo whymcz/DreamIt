@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../index.css";
 import bgImg from "../assets/submit-dream-background.jpg";
+import API_URL from "../config/api";
 
 /* ===== FULL KAZAKHSTAN CITIES LIST ===== */
 const kzCities = [
@@ -127,8 +128,8 @@ function DreamSubmissionPage() {
     try {
 
       const url = editDream
-        ? `http://localhost:5000/parent/update-dream/${editDream._id}`
-        : "http://localhost:5000/submit-dream";
+        ? `${API_URL}/parent/update-dream/${editDream._id}`
+        : `${API_URL}/submit-dream`;
 
       const method = editDream ? "PUT" : "POST";
 

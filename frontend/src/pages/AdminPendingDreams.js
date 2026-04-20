@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import AdminLayout from "../components/AdminLayout";
+import API_URL from "../config/api";
 
 function AdminPendingDreams() {
   const [dreams, setDreams] = useState([]);
   const [selectedDream, setSelectedDream] = useState(null);
   const [denyComment, setDenyComment] = useState("");
-  const [confirmAction, setConfirmAction] = useState(null); 
+  const [confirmAction, setConfirmAction] = useState(null);
+  
+  
   // "approve" or "deny"
 
   useEffect(() => {
@@ -18,7 +21,7 @@ function AdminPendingDreams() {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/admin/pending-dreams",
+        `${API_URL}/admin/pending-dreams`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -37,7 +40,7 @@ function AdminPendingDreams() {
       const token = localStorage.getItem("token");
 
       await axios.patch(
-        `http://localhost:5000/admin/update-dream-status/${id}`,
+        `${API_URL}/admin/update-dream-status/${id}`,
         { status, comment },
         {
           headers: {

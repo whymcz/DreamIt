@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { FaHeart } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
+import API_URL from "../config/api";
 
 function JoyWall() {
 
@@ -15,7 +16,7 @@ function JoyWall() {
 
   const fetchPosts = async () => {
     try {
-      const res = await fetch("http://localhost:5000/joy");
+      const res = await fetch(`${API_URL}/joy`);
       const data = await res.json();
       setPosts(data);
     } catch (error) {
@@ -37,7 +38,7 @@ function JoyWall() {
     }
 
     try {
-      await fetch(`http://localhost:5000/joy/${postId}/like`, {
+      await fetch(`${API_URL}/joy/${postId}/like`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -67,7 +68,7 @@ function JoyWall() {
 
     try {
 
-      await fetch(`http://localhost:5000/joy/${postId}/comment`, {
+      await fetch(`${API_URL}/joy/${postId}/comment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import AdminLayout from "../components/AdminLayout";
+import API_URL from "../config/api";
 
 function AdminDashboard() {
 
@@ -30,12 +31,12 @@ function AdminDashboard() {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/admin/dashboard-stats",
+        `${API_URL}/admin/dashboard-stats`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const deniedRes = await axios.get(
-        "http://localhost:5000/admin/dreams?status=denied",
+        `${API_URL}/admin/dreams?status=denied`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -59,7 +60,7 @@ function AdminDashboard() {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        `http://localhost:5000/admin/dreams?status=${status}`,
+        `${API_URL}/admin/dreams?status=${status}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -82,7 +83,7 @@ function AdminDashboard() {
       const token = localStorage.getItem("token");
 
       await axios.patch(
-        `http://localhost:5000/admin/update-dream-status/${id}`,
+        `${API_URL}/admin/update-dream-status/${id}`,
         { status, comment },
         { headers: { Authorization: `Bearer ${token}` } }
       );

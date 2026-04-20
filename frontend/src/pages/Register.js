@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
+import API_URL from "../config/api";
 
 function Register() {
 
@@ -28,7 +29,7 @@ function Register() {
     e.preventDefault();
 
     try {
-      const res = await axios.post("http://localhost:5000/register", form);
+      const res = await axios.post(`${API_URL}/register`, form);
       setMessage(res.data.message);
     } catch {
       setMessage("Registration error");

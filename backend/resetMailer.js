@@ -3,13 +3,13 @@ const nodemailer = require("nodemailer");
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "dreamit.confirm@gmail.com",
-    pass: "kpvevqirnrrudjsn"
-  }
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+}
 });
 
 const sendResetEmail = async (to, token) => {
-  const link = `http://localhost:3000/reset-password/${token}`;
+  const link = `${process.env.CLIENT_URL}/reset-password/${token}`;
 
   await transporter.sendMail({
     from: '"DreamIt Support" dreamit.comfirm@gmail.com',

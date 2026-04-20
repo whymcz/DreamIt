@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import "../index.css";
 import { useNavigate } from "react-router-dom";
+import API_URL from "../config/api";
 
 
 /* ===== KAZAKHSTAN CITIES LIST ===== */
@@ -64,7 +65,7 @@ function MecenasDreams() {
 
     const user = JSON.parse(localStorage.getItem("user"));
 
-    let url = `http://localhost:5000/dreams/approved?mecenasId=${user._id}`;
+    let url = `${API_URL}/dreams/approved?mecenasId=${user._id}`;
 
     if (cityQuery) url += `&city=${cityQuery}`;
     if (gender) url += `&gender=${gender}`;
@@ -91,7 +92,7 @@ function MecenasDreams() {
   try {
     setLoadingAI(true);
 
-    const res = await fetch(`http://localhost:5000/dreams/${dreamId}/ai-help`, {
+    const res = await fetch(`${API_URL}/dreams/${dreamId}/ai-help`, {
       method: "POST"
     });
 
@@ -119,7 +120,7 @@ function MecenasDreams() {
       const user = JSON.parse(localStorage.getItem("user"));
 
       const response = await fetch(
-        "http://localhost:5000/dreams/request",
+        `${API_URL}/dreams/request`,
         {
           method: "POST",
           headers: {

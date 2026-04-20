@@ -1,4 +1,5 @@
 import { useState } from "react";
+import API_URL from "../config/api";
 
 function CreateJoyPost() {
 
@@ -11,7 +12,7 @@ function CreateJoyPost() {
 
     try {
 
-      const res = await fetch("http://localhost:5000/joy", {
+      const res = await fetch(`${API_URL}/joy`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

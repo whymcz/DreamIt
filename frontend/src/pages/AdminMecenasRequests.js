@@ -3,6 +3,7 @@ import axios from "axios";
 import AdminLayout from "../components/AdminLayout";
 import { FaStar } from "react-icons/fa";
 import { FaInstagram, FaFacebook, FaTiktok, FaLinkedin } from "react-icons/fa";
+import API_URL from "../config/api";
 
 function AdminMecenasRequests() {
 
@@ -34,12 +35,12 @@ function AdminMecenasRequests() {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/admin/mecenas-requests-stats",
+        `${API_URL}/admin/mecenas-requests-stats`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const deniedRes = await axios.get(
-        "http://localhost:5000/admin/mecenas-requests?status=request_denied",
+        `${API_URL}/admin/mecenas-requests?status=request_denied`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -65,9 +66,9 @@ function AdminMecenasRequests() {
 
     // special route for pending cards
     if (status === "pending") {
-      url = "http://localhost:5000/admin/pending-dreams-with-requests";
+      url = `${API_URL}/admin/pending-dreams-with-requests`;
     } else {
-      url = `http://localhost:5000/admin/mecenas-requests?status=${status}`;
+      url = `${API_URL}/admin/mecenas-requests?status=${status}`;
     }
 
     const res = await axios.get(
@@ -96,7 +97,7 @@ function AdminMecenasRequests() {
       const token = localStorage.getItem("token");
 
       await axios.patch(
-        `http://localhost:5000/admin/mecenas-request/${id}`,
+        `${API_URL}/admin/mecenas-request/${id}`,
         { action, comment },
         { headers: { Authorization: `Bearer ${token}` } }
       );

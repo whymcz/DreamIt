@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
+import API_URL from "../config/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ function Login() {
     e.preventDefault();
 
     try {
-      const res = await axios.post("http://localhost:5000/login", form);
+      const res = await axios.post(`${API_URL}/login`, form);
 
       /* ================= SUCCESS LOGIN (USER OR ADMIN) ================= */
 
