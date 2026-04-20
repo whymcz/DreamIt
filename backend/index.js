@@ -99,11 +99,14 @@ app.post("/register", async (req, res) => {
 
     await newUser.save();
 
-    try {
-      await sendVerificationEmail(email, token);
-    } catch (mailError) {
-      console.log("Email send error:", mailError);
-    }
+    console.log("REGISTER: before sending email");
+
+try {
+  await sendVerificationEmail(email, token);
+  console.log("REGISTER: email sent successfully");
+} catch (mailError) {
+  console.log("REGISTER: EMAIL ERROR:", mailError);
+}
 
     res.json({
       message: "Registration successful! Check your email to verify account."

@@ -5,7 +5,7 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
-}
+  }
 });
 
 const sendVerificationEmail = async (to, token) => {
@@ -16,7 +16,7 @@ const sendVerificationEmail = async (to, token) => {
     console.log("FINAL LINK:", link);
 
     await transporter.sendMail({
-      from: '"DreamIt" <YOUR_EMAIL@gmail.com>',
+      from: `"DreamIt" <${process.env.EMAIL_USER}>`,
       to,
       subject: "Verify your DreamIt account",
       html: `
