@@ -104,7 +104,8 @@ function Login() {
         />
 
         {/* PASSWORD */}
-        <div style={{ position: "relative", marginBottom: "15px" }}>
+        {/* PASSWORD */}
+<div style={{ position: "relative" }}>
   <input
     name="password"
     type={showPassword ? "text" : "password"}
@@ -113,8 +114,7 @@ function Login() {
     onChange={handleChange}
     style={{
       ...inputStyle,
-      marginBottom: "0", // important fix
-      paddingRight: "45px"
+      paddingRight: "40px"
     }}
   />
 
@@ -123,14 +123,17 @@ function Login() {
     onClick={() => setShowPassword(!showPassword)}
     style={{
       position: "absolute",
-      right: "10px",
-      top: "50%",
-      transform: "translateY(-50%)",
-      background: "none",
+      right: "12px",
+      top: "0",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "transparent",
       border: "none",
       cursor: "pointer",
-      fontSize: "16px",
-      color: "#777"
+      padding: "0",
+      color: "#999"
     }}
   >
     {showPassword ? <FaEyeSlash /> : <FaEye />}
