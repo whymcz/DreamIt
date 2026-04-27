@@ -18,7 +18,6 @@ function Login() {
 
   const [message, setMessage] = useState("");
 
-  /*  LOAD REMEMBERED CREDENTIALS ON PAGE OPEN */
   useEffect(() => {
     const savedEmail = localStorage.getItem("savedEmail");
     const savedPassword = localStorage.getItem("savedPassword");
@@ -47,17 +46,13 @@ function Login() {
     try {
       const res = await axios.post(`${API_URL}/login`, form);
 
-      /* ================= SUCCESS LOGIN (USER OR ADMIN) ================= */
-
       if (
         res.data.message === "Login successful" ||
         res.data.message === "Admin login successful"
       ) {
-        // Save auth data
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(res.data.user));
 
-        // Remember Me logic
         if (form.rememberMe) {
           localStorage.setItem("savedEmail", form.email);
           localStorage.setItem("savedPassword", form.password);
@@ -66,12 +61,9 @@ function Login() {
           localStorage.removeItem("savedPassword");
         }
 
-        //  ROLE BASED REDIRECT
         if (res.data.user.role === "admin") {
           navigate("/admin/dashboard");
-        } else if (res.data.user.role === "parent") {
-          navigate("/");
-        } else if (res.data.user.role === "mecenas") {
+        } else {
           navigate("/");
         }
 
@@ -103,42 +95,37 @@ function Login() {
           style={inputStyle}
         />
 
-        {/* PASSWORD */}
-        {/* PASSWORD */}
-<div style={{ position: "relative" }}>
-  <input
-    name="password"
-    type={showPassword ? "text" : "password"}
-    placeholder="Password"
-    value={form.password}
-    onChange={handleChange}
-    style={{
-      ...inputStyle,
-      paddingRight: "40px"
-    }}
-  />
+        {/* PASSWORD (FIXED) */}
+        <div style={{ position: "relative", marginBottom: "15px" }}>
+          <input
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            value={form.password}
+            onChange={handleChange}
+            style={{
+              ...inputStyle,
+              marginBottom: 0,
+              paddingRight: "40px"
+            }}
+          />
 
-  <button
-    type="button"
-    onClick={() => setShowPassword(!showPassword)}
-    style={{
-      position: "absolute",
-      right: "12px",
-      top: "0",
-      height: "100%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "transparent",
-      border: "none",
-      cursor: "pointer",
-      padding: "0",
-      color: "#999"
-    }}
-  >
-    {showPassword ? <FaEyeSlash /> : <FaEye />}
-  </button>
-</div>
+          <span
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: "absolute",
+              right: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              cursor: "pointer",
+              color: "#999",
+              display: "flex",
+              alignItems: "center"
+            }}
+          >
+            {showPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+          </span>
+        </div>
 
         {/* REMEMBER + FORGOT */}
         <div style={{
@@ -189,7 +176,9 @@ const inputStyle = {
   marginBottom: "15px",
   borderRadius: "6px",
   border: "1px solid #ddd",
-  fontSize: "14px"
+  fontSize: "14px",
+  boxSizing: "border-box",
+  height: "42px"
 };
 
 const buttonStyle = {
