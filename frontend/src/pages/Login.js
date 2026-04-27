@@ -104,30 +104,37 @@ function Login() {
         />
 
         {/* PASSWORD */}
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative", marginBottom: "15px" }}>
   <input
     name="password"
     type={showPassword ? "text" : "password"}
     placeholder="Password"
     value={form.password}
     onChange={handleChange}
-    style={{ ...inputStyle, paddingRight: "40px" }}
+    style={{
+      ...inputStyle,
+      marginBottom: "0", // important fix
+      paddingRight: "45px"
+    }}
   />
 
-  <span
+  <button
+    type="button"
     onClick={() => setShowPassword(!showPassword)}
     style={{
       position: "absolute",
-      right: "12px",
+      right: "10px",
       top: "50%",
       transform: "translateY(-50%)",
+      background: "none",
+      border: "none",
       cursor: "pointer",
-      fontSize: "18px",
-      color: "#666"
+      fontSize: "16px",
+      color: "#777"
     }}
   >
     {showPassword ? <FaEyeSlash /> : <FaEye />}
-  </span>
+  </button>
 </div>
 
         {/* REMEMBER + FORGOT */}
