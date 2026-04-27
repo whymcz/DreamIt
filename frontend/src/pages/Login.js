@@ -3,9 +3,12 @@ import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import API_URL from "../config/api";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 function Login() {
   const navigate = useNavigate();
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
     email: "",
@@ -101,14 +104,31 @@ function Login() {
         />
 
         {/* PASSWORD */}
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          style={inputStyle}
-        />
+        <div style={{ position: "relative" }}>
+  <input
+    name="password"
+    type={showPassword ? "text" : "password"}
+    placeholder="Password"
+    value={form.password}
+    onChange={handleChange}
+    style={{ ...inputStyle, paddingRight: "40px" }}
+  />
+
+  <span
+    onClick={() => setShowPassword(!showPassword)}
+    style={{
+      position: "absolute",
+      right: "12px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      cursor: "pointer",
+      fontSize: "18px",
+      color: "#666"
+    }}
+  >
+    {showPassword ? <FaEyeSlash /> : <FaEye />}
+  </span>
+</div>
 
         {/* REMEMBER + FORGOT */}
         <div style={{
